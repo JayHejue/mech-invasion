@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍔 定制汉堡店</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body {
+            background: #f5f0eb;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .game { display: flex; gap: 0; background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); overflow: hidden; }
+        .order-panel {
+            width: 220px; background: #fff8f0; padding: 20px; border-right: 2px solid #f0e8e0;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .order-panel h2 { font-size: 16px; color: #d35400; text-align: center; }
+        .order-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+        .order-list li {
+            padding: 8px 12px; border-radius: 8px; background: #fff; border: 2px solid #e8e0d8;
+            font-size: 14px; display: flex; align-items: center; gap: 8px; transition: 0.2s;
+        }
+        .order-list li .icon { font-size: 18px; }
+        .order-list li .check { margin-left: auto; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 11px; transition: 0.2s; }
+        .order-list li.done { border-color: #4caf50; background: #f1f8e9; }
+        .order-list li.done .check { background: #4caf50; border-color: #4caf50; color: #fff; }
+        .timer-box { text-align: center; padding: 10px; background: #fff; border-radius: 8px; border: 2px solid #e8e0d8; }
+        .timer-box .num { font-size: 28px; font-weight: bold; color: #d35400; }
+        .timer-box .label { font-size: 12px; color: #999; }
+        .score-box { text-align: center; padding: 10px; background: #fff; border-radius: 8px; border: 2px solid #e8e0d8; }
+        .score-box .num { font-size: 28px; font-weight: bold; color: #2e7d32; }
+        .score-box .label { font-size: 12px; color: #999; }
+
+        .main-panel { padding: 20px; display: flex; flex-direction: column; gap: 15px; width: 480px; }
+        .ingredient-bar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .ingredient-bar button {
+            padding: 8px 14px; border-radius: 10px; border: 2px solid #e0d8d0; background: #fff;
+            font-size: 13px; cursor: pointer; transition: 0.15s; display: flex; align-items: center; gap: 4px;
+        }
+        .ingredient-bar button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .ingredient-bar button:active { transform: translateY(0); }
+        .ingredient-bar .key-hint { font-size: 10px; color: #bbb; background: #f5f0eb; padding: 1px 5px; border-radius: 4px; }
+
+        .burger-stage {
+            width: 100%; min-height: 320px; background: #faf8f5; border-radius: 12px; border: 2px dashed #e0d8d0;
+            display: flex; flex-direction: column-reverse; align-items: center; justify-content: flex-start;
+            padding: 15px; gap: 0; position: relative;
+        }
+        .burger-stage .placeholder { color: #ccc; font-size: 14px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+        .burger-item {
+            width: 85%; max-width: 240px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-size: 12px; color: #fff; font-weight: bold; position: relative; transition: 0.2s;
+            margin-top: -2px;
+        }
+        .burger-item.bottom-bun { background: #c68c53; height: 28px; border-radius: 8px 8px 4px 4px; color: #5d3a1a; }
+        .burger-item.top-bun { background: #c68c53; height: 30px; border-radius: 12px 12px 4px 4px; color: #5d3a1a; }
+        .burger-item.lettuce { background: #7cb342; height: 12px; border-radius: 6px; }
+        .burger-item.cheese { background: #ffd54f; height: 10px; border-radius: 3px; color: #7c6a1a; }
+        .burger-item.patty { background: #6d4c41; height: 22px; border-radius: 13px; width: 80%; }
+        .burger-item.tomato { background: #e53935; height: 10px; border-radius: 4px; }
+
+        .action-bar { display: flex; gap: 10px; justify-content: center; }
+        .action-bar button {
+            padding: 10px 20px; border-radius: 10px; border: none; font-size: 14px; cursor: pointer; transition: 0.15s; font-weight: bold;
+        }
+        .action-bar button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .btn-undo { background: #ff9800; color: #fff; }
+        .btn-clear { background: #f44336; color: #fff; }
+        .btn-skip { background: #9e9e9e; color: #fff; }
+
+        .result-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6);
+            display: none; justify-content: center; align-items: center; z-index: 100;
+        }
+        .result-overlay.show { display: flex; }
+        .result-card { background: #fff; border-radius: 16px; padding: 40px; text-align: center; max-width: 360px; }
+        .result-card h2 { font-size: 28px; margin-bottom: 10px; }
+        .result-card .big-num { font-size: 56px; font-weight: bold; color: #d35400; }
+        .result-card p { color: #666; margin: 8px 0 20px; }
+        .result-card button { padding: 12px 30px; border-radius: 10px; border: none; background: #d35400; color: #fff; font-size: 16px; cursor: pointer; }
+        .result-card button:hover { background: #bf4a00; }
+
+        @media (max-width: 720px) {
+            .game { flex-direction: column; width: 100%; margin: 10px; }
+            .order-panel { width: 100%; border-right: none; border-bottom: 2px solid #f0e8e0; }
+            .main-panel { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game">
+    <div class="order-panel">
+        <h2>📋 顾客订单</h2>
+        <ul class="order-list" id="orderList"></ul>
+        <div class="timer-box">
+            <div class="label">⏱ 剩余时间</div>
+            <div class="num" id="timerDisplay">60</div>
+        </div>
+        <div class="score-box">
+            <div class="label">✅ 完成订单</div>
+            <div class="num" id="scoreDisplay">0</div>
+        </div>
+    </div>
+
+    <div class="main-panel">
+        <div class="ingredient-bar">
+            <button data-id="bottom-bun"><span class="key-hint">1</span> 🍞 下面包</button>
+            <button data-id="lettuce"><span class="key-hint">2</span> 🥬 生菜</button>
+            <button data-id="cheese"><span class="key-hint">3</span> 🧀 芝士</button>
+            <button data-id="patty"><span class="key-hint">4</span> 🥩 肉饼</button>
+            <button data-id="tomato"><span class="key-hint">5</span> 🍅 番茄</button>
+            <button data-id="top-bun"><span class="key-hint">6</span> 🍞 上面包</button>
+        </div>
+
+        <div class="burger-stage" id="burgerStage">
+            <div class="placeholder">🫓 点击左侧食材开始搭建汉堡</div>
+        </div>
+
+        <div class="action-bar">
+            <button class="btn-undo" onclick="undoIngredient()">↩ 撤销</button>
+            <button class="btn-clear" onclick="clearBurger()">🗑 清空</button>
+            <button class="btn-skip" onclick="skipOrder()">⏭ 跳过订单</button>
+        </div>
+    </div>
+</div>
+
+<div class="result-overlay" id="resultOverlay">
+    <div class="result-card">
+        <h2>⏰ 时间到！</h2>
+        <div class="big-num" id="finalScore">0</div>
+        <p>个订单已完成</p>
+        <button onclick="resetGame()">🔄 再来一局</button>
+    </div>
+</div>
+
+<script>
+    const ALL_INGREDIENTS = {
+        'bottom-bun': { id: 'bottom-bun', name: '下面包', icon: '🍞', cls: 'bottom-bun' },
+        'lettuce':    { id: 'lettuce',    name: '生菜',   icon: '🥬', cls: 'lettuce' },
+        'cheese':     { id: 'cheese',     name: '芝士',   icon: '🧀', cls: 'cheese' },
+        'patty':      { id: 'patty',      name: '肉饼',   icon: '🥩', cls: 'patty' },
+        'tomato':     { id: 'tomato',     name: '番茄',   icon: '🍅', cls: 'tomato' },
+        'top-bun':    { id: 'top-bun',    name: '上面包', icon: '🍞', cls: 'top-bun' }
+    };
+    const INGREDIENT_KEYS = ['bottom-bun','lettuce','cheese','patty','tomato','top-bun'];
+
+    let currentOrder = [];
+    let burger = [];
+    let completedCount = 0;
+    let timeLeft = 60;
+    let timerInterval = null;
+    let gameActive = false;
+
+    const orderListEl = document.getElementById('orderList');
+    const burgerStage = document.getElementById('burgerStage');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const resultOverlay = document.getElementById('resultOverlay');
+    const finalScore = document.getElementById('finalScore');
+
+    // ---- 生成随机订单 ----
+    function generateOrder() {
+        const middleOptions = ['lettuce','cheese','patty','tomato'];
+        const shuffled = middleOptions.sort(() => Math.random() - 0.5);
+        const count = 1 + Math.floor(Math.random() * shuffled.length);
+        const middle = shuffled.slice(0, count);
+        return ['bottom-bun', ...middle, 'top-bun'];
+    }
+
+    // ---- 渲染订单 ----
+    function renderOrder() {
+        orderListEl.innerHTML = '';
+        currentOrder.forEach((id, idx) => {
+            const ing = ALL_INGREDIENTS[id];
+            const li = document.createElement('li');
+            li.id = 'order-' + idx;
+            li.innerHTML = `<span class="icon">${ing.icon}</span>${ing.name}<span class="check"></span>`;
+            orderListEl.appendChild(li);
+        });
+    }
+
+    // ---- 更新订单高亮 ----
+    function updateOrderHighlights() {
+        let orderIdx = 0;
+        for (const id of ALL_INGREDIENTS['bottom-bun'].id === burger[0] ? burger : []) {
+            // skip, we match by position
+        }
+        // Match burger against order sequentially
+        const matchCount = matchBurgerToOrder();
+        currentOrder.forEach((id, idx) => {
+            const li = document.getElementById('order-' + idx);
+            if (!li) return;
+            if (idx < matchCount) {
+                li.classList.add('done');
+                li.querySelector('.check').textContent = '✓';
+            } else {
+                li.classList.remove('done');
+                li.querySelector('.check').textContent = '';
+            }
+        });
+    }
+
+    function matchBurgerToOrder() {
+        let i = 0;
+        while (i < burger.length && i < currentOrder.length && burger[i] === currentOrder[i]) {
+            i++;
+        }
+        return i;
+    }
+
+    // ---- 渲染汉堡 ----
+    function renderBurger() {
+        burgerStage.innerHTML = '';
+        if (burger.length === 0) {
+            burgerStage.innerHTML = '<div class="placeholder">🫓 点击食材开始搭建汉堡</div>';
+            updateOrderHighlights();
+            return;
+        }
+        for (let i = burger.length - 1; i >= 0; i--) {
+            const id = burger[i];
+            const ing = ALL_INGREDIENTS[id];
+            const div = document.createElement('div');
+            div.className = 'burger-item ' + ing.cls;
+            div.textContent = ing.icon + ' ' + ing.name;
+            burgerStage.appendChild(div);
+        }
+        updateOrderHighlights();
+
+        // 检查是否完成
+        if (burger.length === currentOrder.length && matchBurgerToOrder() === currentOrder.length) {
+            completeOrder();
+        }
+    }
+
+    // ---- 添加食材 ----
+    function addIngredient(id) {
+        if (!gameActive) return;
+        if (id === 'bottom-bun') {
+            if (burger.length > 0 && burger[0] === 'bottom-bun') return;
+        }
+        if (burger.includes(id)) return;
+        if (burger.length === 0 && id !== 'bottom-bun') return;
+        if (burger.length > 0 && burger[burger.length - 1] === 'top-bun') return;
+
+        burger.push(id);
+        renderBurger();
+    }
+
+    // ---- 撤销 ----
+    function undoIngredient() {
+        if (!gameActive || burger.length === 0) return;
+        burger.pop();
+        renderBurger();
+    }
+
+    // ---- 清空 ----
+    function clearBurger() {
+        if (!gameActive) return;
+        burger = [];
+        renderBurger();
+    }
+
+    // ---- 跳过订单 ----
+    function skipOrder() {
+        if (!gameActive) return;
+        burger = [];
+        generateAndRenderOrder();
+    }
+
+    // ---- 完成订单 ----
+    function completeOrder() {
+        completedCount++;
+        scoreDisplay.textContent = completedCount;
+        burger = [];
+        setTimeout(() => generateAndRenderOrder(), 300);
+    }
+
+    function generateAndRenderOrder() {
+        currentOrder = generateOrder();
+        renderOrder();
+        renderBurger();
+    }
+
+    // ---- 计时器 ----
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        timeLeft = 60;
+        timerDisplay.textContent = timeLeft;
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                gameActive = false;
+                finalScore.textContent = completedCount;
+                resultOverlay.classList.add('show');
+            }
+        }, 1000);
+    }
+
+    // ---- 重新开始 ----
+    function resetGame() {
+        resultOverlay.classList.remove('show');
+        completedCount = 0;
+        scoreDisplay.textContent = '0';
+        burger = [];
+        gameActive = true;
+        generateAndRenderOrder();
+        startTimer();
+    }
+
+    // ---- 初始化 ----
+    function init() {
+        gameActive = true;
+        generateAndRenderOrder();
+        startTimer();
+
+        // 点击食材按钮
+        document.querySelectorAll('.ingredient-bar button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                addIngredient(btn.dataset.id);
+            });
+        });
+
+        // 快捷键
+        document.addEventListener('keydown', (e) => {
+            const keyMap = { '1': 'bottom-bun', '2': 'lettuce', '3': 'cheese', '4': 'patty', '5': 'tomato', '6': 'top-bun' };
+            if (e.key >= '1' && e.key <= '6') {
+                e.preventDefault();
+                addIngredient(keyMap[e.key]);
+            }
+            if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); undoIngredient(); }
+            if (e.key === 'c' || e.key === 'C') { e.preventDefault(); clearBurger(); }
+            if (e.key === 's' || e.key === 'S') { e.preventDefault(); skipOrder(); }
+        });
+    }
+
+    init();
+</script>
+</body>
+</html>
