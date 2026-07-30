@@ -351,7 +351,7 @@ function sfxBossSpiral() {
 
 const KILLS_FOR_BOSS = 50;
 const GRENADE_RADIUS = 600;
-const GRENADE_CD = 5000;
+const GRENADE_CD = 50;
 const ULTIMATE_CD = 30000;
 const LASER_CD = 50;
 const BOSS_BEAM_INTERVAL = 5000;
@@ -383,16 +383,16 @@ const WEAPONS = [
 ];
 
 const SKINS = [
-  { name: '极光蓝',   body: '#0099ee', wing: '#0077cc', cockpit: '#66ffff', cockpitDark: '#006699', outline: '#44ccff', engine: '#ff8800', engineInner: '#ffffb4', laserColor: '#00ccff', price: 0,    bullets: 1,  tier: 1 },
-  { name: '赤焰红',   body: '#ee4400', wing: '#cc3300', cockpit: '#ff9966', cockpitDark: '#993300', outline: '#ff6644', engine: '#00ccff', engineInner: '#ccffff', laserColor: '#ff4422', price: 300,  bullets: 2,  tier: 1 },
-  { name: '翡翠绿',   body: '#00cc66', wing: '#009944', cockpit: '#66ffaa', cockpitDark: '#006633', outline: '#44ff88', engine: '#ff66cc', engineInner: '#ffccff', laserColor: '#00ff88', price: 500,  bullets: 2,  tier: 1 },
-  { name: '帝王金',   body: '#ddbb00', wing: '#aa8800', cockpit: '#ffee88', cockpitDark: '#665500', outline: '#ffdd44', engine: '#ff3300', engineInner: '#ff9966', laserColor: '#ffcc00', price: 800,  bullets: 3,  tier: 1 },
-  { name: '幻影紫',   body: '#aa44ee', wing: '#7722cc', cockpit: '#cc88ff', cockpitDark: '#551199', outline: '#cc66ff', engine: '#00ffcc', engineInner: '#aaffee', laserColor: '#cc44ff', price: 1200, bullets: 4,  tier: 1 },
-  { name: '钛白星',   body: '#cccccc', wing: '#999999', cockpit: '#ffffff', cockpitDark: '#666666', outline: '#eeeeee', engine: '#4488ff', engineInner: '#aaccff', laserColor: '#ffffff', price: 2000, bullets: 5,  tier: 1 },
-  { name: '暗物质X',  body: '#220044', wing: '#110022', cockpit: '#aa44ff', cockpitDark: '#440088', outline: '#8800ff', engine: '#ff0066', engineInner: '#ff88cc', laserColor: '#aa00ff', price: 3500, bullets: 6,  tier: 2 },
-  { name: '日冕战机', body: '#ffaa00', wing: '#cc7700', cockpit: '#ffff88', cockpitDark: '#994400', outline: '#ffdd00', engine: '#00ffff', engineInner: '#aaffff', laserColor: '#ffaa00', price: 5000, bullets: 7,  tier: 2 },
-  { name: '冰霜之刃', body: '#aaddff', wing: '#6699cc', cockpit: '#ffffff', cockpitDark: '#336699', outline: '#ccffff', engine: '#4488ff', engineInner: '#bbddff', laserColor: '#88ddff', price: 7000, bullets: 8,  tier: 2 },
-  { name: '创世神翼', body: '#ffffff', wing: '#cccccc', cockpit: '#ffffcc', cockpitDark: '#888888', outline: '#ffffff', engine: '#ffcc00', engineInner: '#ffee88', laserColor: '#ffffff', price: 12000,bullets: 10, tier: 2 },
+  { name: '极光蓝',   body: '#0099ee', wing: '#0077cc', cockpit: '#66ffff', cockpitDark: '#006699', outline: '#44ccff', engine: '#ff8800', engineInner: '#ffffb4', laserColor: '#00ccff', price: 0,    bullets: 1,  tier: 1, grenades: 1 },
+  { name: '赤焰红',   body: '#ee4400', wing: '#cc3300', cockpit: '#ff9966', cockpitDark: '#993300', outline: '#ff6644', engine: '#00ccff', engineInner: '#ccffff', laserColor: '#ff4422', price: 300,  bullets: 2,  tier: 1, grenades: 1 },
+  { name: '翡翠绿',   body: '#00cc66', wing: '#009944', cockpit: '#66ffaa', cockpitDark: '#006633', outline: '#44ff88', engine: '#ff66cc', engineInner: '#ffccff', laserColor: '#00ff88', price: 500,  bullets: 2,  tier: 1, grenades: 1 },
+  { name: '帝王金',   body: '#ddbb00', wing: '#aa8800', cockpit: '#ffee88', cockpitDark: '#665500', outline: '#ffdd44', engine: '#ff3300', engineInner: '#ff9966', laserColor: '#ffcc00', price: 800,  bullets: 3,  tier: 1, grenades: 2 },
+  { name: '幻影紫',   body: '#aa44ee', wing: '#7722cc', cockpit: '#cc88ff', cockpitDark: '#551199', outline: '#cc66ff', engine: '#00ffcc', engineInner: '#aaffee', laserColor: '#cc44ff', price: 1200, bullets: 4,  tier: 1, grenades: 2 },
+  { name: '钛白星',   body: '#cccccc', wing: '#999999', cockpit: '#ffffff', cockpitDark: '#666666', outline: '#eeeeee', engine: '#4488ff', engineInner: '#aaccff', laserColor: '#ffffff', price: 2000, bullets: 5,  tier: 1, grenades: 3 },
+  { name: '暗物质X',  body: '#220044', wing: '#110022', cockpit: '#aa44ff', cockpitDark: '#440088', outline: '#8800ff', engine: '#ff0066', engineInner: '#ff88cc', laserColor: '#aa00ff', price: 3500, bullets: 6,  tier: 2, grenades: 3 },
+  { name: '日冕战机', body: '#ffaa00', wing: '#cc7700', cockpit: '#ffff88', cockpitDark: '#994400', outline: '#ffdd00', engine: '#00ffff', engineInner: '#aaffff', laserColor: '#ffaa00', price: 5000, bullets: 7,  tier: 2, grenades: 4 },
+  { name: '冰霜之刃', body: '#aaddff', wing: '#6699cc', cockpit: '#ffffff', cockpitDark: '#336699', outline: '#ccffff', engine: '#4488ff', engineInner: '#bbddff', laserColor: '#88ddff', price: 7000, bullets: 8,  tier: 2, grenades: 4 },
+  { name: '创世神翼', body: '#ffffff', wing: '#cccccc', cockpit: '#ffffcc', cockpitDark: '#888888', outline: '#ffffff', engine: '#ffcc00', engineInner: '#ffee88', laserColor: '#ffffff', price: 12000,bullets: 10, tier: 2, grenades: 5 },
 ];
 
 const LEVELS = [
@@ -996,10 +996,16 @@ function fireGrenade() {
   if (game.grenadeCD > 0) return;
   sfxGrenade();
   const wp = WEAPONS[game.equippedWeapon];
-  game.grenades.push({
-    x: game.player.x, y: game.player.y - game.player.h/2 - 6,
-    r: 6, speed: 7, damage: Math.round(wp.damage * 2.5),
-  });
+  const skin = SKINS[game.selectedSkin] || SKINS[0];
+  const count = skin.bullets || 1;
+  const spread = count > 1 ? (count - 1) * 8 : 0;
+  for (let b = 0; b < count; b++) {
+    const offset = count === 1 ? 0 : -spread/2 + b * (spread / (count - 1));
+    game.grenades.push({
+      x: game.player.x + offset, y: game.player.y - game.player.h/2 - 6,
+      r: 6, speed: 7, damage: Math.round(wp.damage * 2.5),
+    });
+  }
   game.grenadeCD = GRENADE_CD;
 }
 
