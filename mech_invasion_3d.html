@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mech Invasion 3D</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;overflow:hidden;font-family:'Courier New',monospace;user-select:none}
+#ui{position:absolute;top:10px;left:10px;color:#fff;font-size:13px;pointer-events:none;z-index:5}
+#ui div{margin:2px 0}
+.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(0,0,0,0.85);color:#fff;z-index:10}
+.hidden{display:none!important}
+h1{font-size:42px;color:#ffcc00;text-shadow:0 0 30px #ff8800;margin-bottom:10px}
+h2{font-size:26px;color:#00ccff;text-shadow:0 0 15px #0088ff;margin-bottom:15px}
+p{font-size:14px;margin:4px 0;color:#aaa;text-align:center}
+.btn{padding:10px 30px;margin:6px;font-family:'Courier New',monospace;font-size:16px;font-weight:bold;border:2px solid;cursor:pointer;border-radius:4px;min-width:180px}
+.btn-primary{background:#004488;color:#00ccff;border-color:#0066cc}
+.btn-primary:hover{background:#0066cc}
+.btn-gold{background:#664400;color:#ffcc00;border-color:#cc8800}
+.btn-gold:hover{background:#886600}
+.btn-success{background:#004400;color:#44ff44;border-color:#008800}
+.btn-success:hover{background:#006600}
+.btn-small{padding:5px 10px;font-size:12px;min-width:auto}
+.btn-danger{background:#660000;color:#ff4444;border-color:#cc0000}
+.coin-display{font-size:18px;color:#ffcc00;padding:6px 16px;background:rgba(0,0,0,0.6);border:1px solid #886600;border-radius:4px;margin:6px 0}
+.shop-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:8px 16px;max-height:280px;overflow-y:auto}
+.weapon-card{background:rgba(20,20,60,0.95);border:2px solid #333;border-radius:6px;padding:8px 6px;text-align:center}
+.weapon-card.owned{border-color:#00cc44;background:rgba(0,30,20,0.95)}
+.weapon-card.equipped{border-color:#ffcc00;background:rgba(30,30,0,0.95);box-shadow:0 0 12px rgba(255,200,0,0.3)}
+.skin-grid{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:6px 0}
+.skin-card{width:70px;border-radius:6px;border:2px solid #333;cursor:pointer;background:rgba(10,10,30,0.9);padding:3px;text-align:center}
+.skin-card:hover{border-color:#888;transform:scale(1.06)}
+.skin-card.selected{border-color:#ffcc00;box-shadow:0 0 12px rgba(255,200,0,0.5);transform:scale(1.1)}
+.skin-card canvas{display:block;margin:0 auto}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.flash-text{animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div id="uiLevel"></div>
+  <div id="uiCoins"></div>
+  <div id="uiWeapon"></div>
+  <div id="uiGrenade"></div>
+  <div id="uiLaser"></div>
+  <div id="uiUltimate"></div>
+</div>
+
+<div id="menuScreen" class="screen">
+  <h1>MECH INVASION 3D</h1>
+  <h2>机甲入侵</h2>
+  <p style="color:#ffcc00">选择战机皮肤</p>
+  <div class="skin-grid" id="skinGrid"></div>
+  <p>WASD/方向键 移动 | 空格 激光 | Shift 榴弹炮 | Enter 终极武器</p>
+  <p style="color:#ffcc00">击败敌人 +10💰 | BOSS +500💰</p>
+  <div class="coin-display">💰 <span id="menuCoins">500</span> 金币</div>
+  <button class="btn btn-primary" onclick="startGame()">🚀 出发!</button>
+</div>
+
+<div id="shopScreen" class="screen hidden">
+  <h2>🔧 武器商店</h2>
+  <div class="coin-display">💰 <span id="shopCoins">0</span> 金币</div>
+  <div class="shop-grid" id="shopGrid"></div>
+  <p style="font-size:12px;color:#ffcc00;margin:4px 0">🚀 战机皮肤</p>
+  <div class="shop-grid" id="shopSkinGrid"></div>
+  <button class="btn btn-gold" onclick="continueFromShop()" style="margin-top:6px">继续下一关</button>
+</div>
+
+<div id="levelScreen" class="screen hidden">
+  <h2 id="levelTitle">关卡完成!</h2>
+  <p id="levelStats"></p>
+  <div class="coin-display">💰 <span id="levelCoins">0</span> 金币</div>
+  <div class="btn-group">
+    <button class="btn btn-success" id="nextLevelBtn" onclick="nextLevel()">下一关 ▸</button>
+    <button class="btn btn-gold" onclick="openShop()">🛒 武器商店</button>
+  </div>
+</div>
+
+<div id="gameoverScreen" class="screen hidden">
+  <h1 style="color:#ff0000">💀 GAME OVER</h1>
+  <p id="gameoverStats" style="font-size:16px"></p>
+  <p style="color:#ffcc00;margin-top:6px">选择重新挑战的关卡:</p>
+  <div class="btn-group" id="levelSelectBtns"></div>
+  <button class="btn btn-primary" onclick="restartGame()" style="margin-top:6px">🏠 返回主菜单</button>
+</div>
+
+<div id="winScreen" class="screen hidden">
+  <h1 style="font-size:34px">🏆 CONGRATULATIONS!</h1>
+  <h2 style="font-size:22px;color:#ffcc00">congratulation！you protect the earth！</h2>
+  <p id="winStats" style="color:#ffcc00"></p>
+  <button class="btn btn-primary" onclick="restartGame()">按 R 再来一次</button>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050515);
+scene.fog = new THREE.Fog(0x050515, 50, 300);
+
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 1, 800);
+camera.position.set(0, 90, 110);
+camera.lookAt(0, 20, 0);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.appendChild(renderer.domElement);
+
+const ambient = new THREE.AmbientLight(0x334466, 1.5);
+scene.add(ambient);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+dirLight.position.set(0, 80, 40);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(512, 512);
+scene.add(dirLight);
+
+const GRENADE_RADIUS = 600, GRENADE_CD = 50, ULTIMATE_CD = 30000, LASER_CD = 50;
+const KILLS_FOR_BOSS = 50, BEAM_WIDTH = 150;
+const GAME_W = 900, GAME_H = 600;
+
+const WEAPONS = [
+  {name:'基础激光',damage:20,price:0,color:'#00ff00',shape:0,tier:1},
+  {name:'等离子炮',damage:35,price:30,color:'#ff8800',shape:1,tier:1},
+  {name:'离子加农炮',damage:50,price:70,color:'#00ffff',shape:2,tier:1},
+  {name:'中子光束',damage:75,price:120,color:'#ff00ff',shape:3,tier:1},
+  {name:'量子射线',damage:100,price:200,color:'#ffff00',shape:4,tier:1},
+  {name:'暗物质炮',damage:150,price:300,color:'#8800ff',shape:5,tier:1},
+  {name:'反物质炮',damage:200,price:450,color:'#ff4444',shape:6,tier:1},
+  {name:'光子碎裂炮',damage:250,price:600,color:'#44ff88',shape:7,tier:1},
+  {name:'恒星爆破',damage:300,price:800,color:'#ffaa00',shape:8,tier:1},
+  {name:'宇宙湮灭炮',damage:400,price:1100,color:'#ffffff',shape:9,tier:1},
+  {name:'质子裂解炮',damage:500,price:1500,color:'#44aaff',shape:0,tier:2},
+  {name:'超新星射线',damage:650,price:2000,color:'#ffaa44',shape:1,tier:2},
+  {name:'时空扭曲炮',damage:800,price:2600,color:'#88ff88',shape:2,tier:2},
+  {name:'重力坍缩炮',damage:1000,price:3400,color:'#cc44cc',shape:3,tier:2},
+  {name:'维度切割器',damage:1200,price:4400,color:'#ff6666',shape:4,tier:2},
+  {name:'混沌能量炮',damage:1500,price:5600,color:'#66aaff',shape:5,tier:2},
+  {name:'虚空湮灭炮',damage:1800,price:7000,color:'#aa66ff',shape:6,tier:2},
+  {name:'恒星核心炮',damage:2200,price:9000,color:'#ffcc44',shape:7,tier:2},
+  {name:'银河撕裂者',damage:2600,price:11000,color:'#44ddff',shape:8,tier:2},
+  {name:'创世神罚',damage:3200,price:14000,color:'#ffffff',shape:9,tier:2},
+];
+
+const SKINS = [
+  {name:'极光蓝',body:0x0099ee,wing:0x0077cc,cockpit:0x66ffff,laser:0x00ccff,price:0,bullets:1,tier:1},
+  {name:'赤焰红',body:0xee4400,wing:0xcc3300,cockpit:0xff9966,laser:0xff4422,price:300,bullets:2,tier:1},
+  {name:'翡翠绿',body:0x00cc66,wing:0x009944,cockpit:0x66ffaa,laser:0x00ff88,price:500,bullets:2,tier:1},
+  {name:'帝王金',body:0xddbb00,wing:0xaa8800,cockpit:0xffee88,laser:0xffcc00,price:800,bullets:3,tier:1},
+  {name:'幻影紫',body:0xaa44ee,wing:0x7722cc,cockpit:0xcc88ff,laser:0xcc44ff,price:1200,bullets:4,tier:1},
+  {name:'钛白星',body:0xcccccc,wing:0x999999,cockpit:0xffffff,laser:0xffffff,price:2000,bullets:5,tier:1},
+  {name:'暗物质X',body:0x440088,wing:0x220044,cockpit:0xaa44ff,laser:0xaa00ff,price:3500,bullets:6,tier:2},
+  {name:'日冕战机',body:0xffaa00,wing:0xcc7700,cockpit:0xffff88,laser:0xffaa00,price:5000,bullets:7,tier:2},
+  {name:'冰霜之刃',body:0xaaddff,wing:0x6699cc,cockpit:0xffffff,laser:0x88ddff,price:7000,bullets:8,tier:2},
+  {name:'创世神翼',body:0xffffff,wing:0xcccccc,cockpit:0xffffcc,laser:0xffffff,price:12000,bullets:10,tier:2},
+];
+
+const LEVELS = [
+  {name:'第一关',bossHP:24000,enemyHP:30,enemySpeed:0.7,spawnRate:55,bossType:0,bossName:'Armored Titan',bossColor:0xff3300},
+  {name:'第二关',bossHP:240000,enemyHP:35,enemySpeed:0.9,spawnRate:50,bossType:1,bossName:'Aerial Striker',bossColor:0x3388ff},
+  {name:'第三关',bossHP:288000,enemyHP:40,enemySpeed:1.1,spawnRate:45,bossType:2,bossName:'Artillery Tank',bossColor:0x33ff44},
+  {name:'第四关',bossHP:352000,enemyHP:45,enemySpeed:1.3,spawnRate:40,bossType:3,bossName:'Shadow Phantom',bossColor:0xaa44ff},
+  {name:'第五关',bossHP:448000,enemyHP:50,enemySpeed:1.6,spawnRate:35,bossType:4,bossName:'Overlord Prime',bossColor:0xffcc00},
+  {name:'第六关',bossHP:560000,enemyHP:55,enemySpeed:1.9,spawnRate:32,bossType:5,bossName:'Hellfire Colossus',bossColor:0xff5500},
+  {name:'第七关',bossHP:700000,enemyHP:60,enemySpeed:2.2,spawnRate:30,bossType:14,bossName:'Omega Prime',bossColor:0xffddff},
+  {name:'第八关',bossHP:880000,enemyHP:65,enemySpeed:2.5,spawnRate:28,bossType:7,bossName:'Juggernaut Behemoth',bossColor:0xaa8844},
+  {name:'第九关',bossHP:1100000,enemyHP:70,enemySpeed:2.8,spawnRate:26,bossType:8,bossName:'Void Weaver',bossColor:0x880022},
+  {name:'第十关',bossHP:1400000,enemyHP:80,enemySpeed:3.2,spawnRate:24,bossType:9,bossName:'Godslayer Omega',bossColor:0xffffff},
+  {name:'第十一关',bossHP:1800000,enemyHP:90,enemySpeed:3.5,spawnRate:22,bossType:10,bossName:'Abyssal Leviathan',bossColor:0x00aa88},
+  {name:'第十二关',bossHP:2400000,enemyHP:105,enemySpeed:4.0,spawnRate:20,bossType:11,bossName:'Celestial Warden',bossColor:0x88aaff},
+  {name:'第十三关',bossHP:3200000,enemyHP:120,enemySpeed:4.5,spawnRate:18,bossType:12,bossName:'Inferno Warlord',bossColor:0xcc2200},
+  {name:'第十四关',bossHP:4200000,enemyHP:140,enemySpeed:5.0,spawnRate:16,bossType:13,bossName:'Quantum Architect',bossColor:0x44cccc},
+  {name:'第十五关',bossHP:5600000,enemyHP:160,enemySpeed:5.5,spawnRate:14,bossType:6,bossName:'Storm Harbinger',bossColor:0x00bbff},
+];
+
+let game, keys = {}, playerMesh, enemyMeshes = [], bossMesh, laserMeshes = [], grenadeMeshes = [];
+let starParticles, particleGroup;
+
+function initGameState() {
+  game = {
+    state:'menu', level:0, coins:500, selectedSkin:0, ownedSkins:new Set([0]),
+    ownedWeapons:new Set([0]), equippedWeapon:0, totalKills:0, level5Cleared:false,
+    player:{x:0,y:0,z:10}, enemies:[], lasers:[], grenades:[], boss:null, kills:0,
+    laserCD:0, grenadeCD:0, ultimateCD:0, bossSpawned:false, bossDefeated:false, bossIntro:false,
+    bossIntroTime:0, spawnTimer:0, beamWarning:null, beamFiring:null, ultimateReady:false,
+    bossMissiles:[], mortarZones:[], voidRifts:[], flameWalls:[], lightningBolts:[],
+    shockwaves:[], gravityWells:[], bossProjectiles:[], dimensionalRifts:[], phaseMirrors:[],
+    spiralAngle:0, dashTrail:[], screenShake:0, shakeTime:0, ionBeamActive:false, ionBeamTimer:0,
+    winTimer:0, winShowText:false,
+  };
+}
+
+initGameState();
+
+function saveGame() {
+  try{localStorage.setItem('mech3d_save',JSON.stringify({
+    coins:game.coins, ownedWeapons:[...game.ownedWeapons], equippedWeapon:game.equippedWeapon,
+    ownedSkins:[...game.ownedSkins], selectedSkin:game.selectedSkin, level5Cleared:game.level5Cleared,
+    totalKills:game.totalKills
+  }))}catch(e){}
+}
+function loadGame() {
+  try{
+    const r=localStorage.getItem('mech3d_save');if(!r)return false;
+    const d=JSON.parse(r);game.coins=d.coins||500;game.ownedWeapons=new Set(d.ownedWeapons||[0]);
+    game.equippedWeapon=d.equippedWeapon||0;game.ownedSkins=new Set(d.ownedSkins||[0]);
+    game.selectedSkin=d.selectedSkin||0;game.level5Cleared=d.level5Cleared||false;
+    game.totalKills=d.totalKills||0;return true;
+  }catch(e){return false}
+}
+function clearSave(){localStorage.removeItem('mech3d_save')}
+
+window.startGame = function() {
+  const ow=game.ownedWeapons,os=game.ownedSkins,sk=game.selectedSkin,c=game.coins;
+  initGameState(); game.ownedWeapons=ow;game.ownedSkins=os;game.selectedSkin=sk;game.coins=c;
+  game.state='playing';game.level=0;game.totalKills=0;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  spawnPlayerShip();
+};
+window.restartGame = function() {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('menuScreen').classList.remove('hidden');
+  const ow=game.ownedWeapons,os=game.ownedSkins,sk=game.selectedSkin,c=game.coins;
+  const l5=game.level5Cleared; initGameState();
+  game.ownedWeapons=ow;game.ownedSkins=os;game.selectedSkin=sk;game.coins=c;game.level5Cleared=l5;
+  renderSkinGrid();
+};
+window.nextLevel = function() {
+  document.getElementById('levelScreen').classList.add('hidden');
+  game.level++; if(game.level>=LEVELS.length){triggerWin();return}
+  startNextLevel();
+};
+window.openShop = function() {
+  document.getElementById('levelScreen').classList.add('hidden');
+  document.getElementById('shopScreen').classList.remove('hidden'); renderShop();
+};
+window.continueFromShop = function() {
+  document.getElementById('shopScreen').classList.add('hidden');
+  game.level++; if(game.level>=LEVELS.length){triggerWin();return}
+  startNextLevel();
+};
+
+function startNextLevel() {
+  game.state='playing';game.boss=null;game.bossSpawned=game.bossDefeated=game.bossIntro=false;
+  game.enemies=[];game.lasers=[];game.grenades=[];game.kills=0;game.laserCD=game.grenadeCD=game.ultimateCD=0;
+  game.spawnTimer=0;game.beamWarning=game.beamFiring=null;game.screenShake=game.shakeTime=0;
+  game.ionBeamActive=false;game.bossMissiles=[];game.mortarZones=[];game.voidRifts=[];
+  game.flameWalls=[];game.lightningBolts=[];game.shockwaves=[];game.gravityWells=[];
+  game.bossProjectiles=[];game.dimensionalRifts=[];game.phaseMirrors=[];game.spiralAngle=0;game.dashTrail=[];
+  game.player.x=game.player.y=0;game.player.z=10;
+  clear3DObjects(); spawnPlayerShip();
+}
+
+function triggerWin() {
+  game.state='win';game.winTimer=0;game.winShowText=false;clearSave();
+  document.getElementById('winStats').textContent=`总击杀: ${game.totalKills}`;
+}
+function showLevelComplete() {
+  game.state='levelComplete';saveGame();
+  const l=LEVELS[game.level];
+  document.getElementById('levelTitle').textContent=`${l.name} 完成!`;
+  document.getElementById('levelStats').textContent=`击败: ${l.bossName}`;
+  document.getElementById('levelCoins').innerHTML=`💰 ${game.coins} 金币`;
+  document.getElementById('nextLevelBtn').style.display=game.level<LEVELS.length-1?'inline-block':'none';
+  document.getElementById('levelScreen').classList.remove('hidden');
+}
+function populateLevelSelect() {
+  const c=document.getElementById('levelSelectBtns');c.innerHTML='';
+  for(let i=0;i<=Math.min(game.level,LEVELS.length-1);i++){
+    const b=document.createElement('button');b.className='btn btn-danger btn-small';
+    b.textContent=LEVELS[i].name;b.style.minWidth='70px';b.style.padding='4px 10px';b.style.fontSize='12px';
+    const lv=i;b.onclick=()=>retryLevel(lv);c.appendChild(b);
+  }
+}
+function retryLevel(lvl) {
+  document.getElementById('gameoverScreen').classList.add('hidden');
+  game.state='playing';game.level=lvl;game.totalKills-=game.kills;
+  startNextLevel();
+}
+
+function renderSkinGrid() {
+  document.getElementById('menuCoins').textContent=game.coins;
+  const g=document.getElementById('skinGrid');g.innerHTML='';
+  SKINS.forEach((s,i)=>{
+    const c=document.createElement('div');c.className='skin-card'+(i===game.selectedSkin?' selected':'');
+    if(s.tier===2&&!game.level5Cleared){c.style.opacity='0.35';c.style.cursor='not-allowed';c.title='第五关后解锁'}
+    else if(game.ownedSkins.has(i)){c.onclick=()=>{game.selectedSkin=i;renderSkinGrid()}}
+    else{c.onclick=()=>{if(game.coins>=s.price){game.coins-=s.price;game.ownedSkins.add(i);game.selectedSkin=i;renderSkinGrid();saveGame()}}}
+    const cv=document.createElement('canvas');cv.width=60;cv.height=50;c.appendChild(cv);
+    const cx=cv.getContext('2d');cx.fillStyle='#'+s.body.toString(16).padStart(6,'0');
+    cx.beginPath();cx.moveTo(30,10);cx.lineTo(15,40);cx.lineTo(20,42);cx.lineTo(28,32);
+    cx.lineTo(32,32);cx.lineTo(40,42);cx.lineTo(45,40);cx.closePath();cx.fill();
+    cx.fillStyle='#'+s.cockpit.toString(16).padStart(6,'0');cx.beginPath();cx.arc(30,24,5,0,Math.PI*2);cx.fill();
+    const l=document.createElement('div');l.style.cssText='font-size:10px;color:#aaa;text-align:center';
+    l.textContent=game.ownedSkins.has(i)?s.name:(s.tier===2&&!game.level5Cleared?'🔒':`🔒${s.price}💰`);
+    l.style.color=game.ownedSkins.has(i)?'#aaa':'#ff6600';c.appendChild(l);g.appendChild(c);
+  });
+  saveGame();
+}
+
+function renderShop() {
+  document.getElementById('shopCoins').textContent=game.coins;
+  const g=document.getElementById('shopGrid');g.innerHTML='';
+  WEAPONS.forEach((w,i)=>{
+    const locked=w.tier===2&&!game.level5Cleared;
+    const c=document.createElement('div');c.className='weapon-card';if(locked)c.style.opacity='0.45';
+    if(i===game.equippedWeapon)c.classList.add('equipped');else if(game.ownedWeapons.has(i))c.classList.add('owned');
+    const n=document.createElement('div');n.style.cssText='font-size:11px;font-weight:bold;color:#fff';n.textContent=w.name;
+    const d=document.createElement('div');d.style.cssText='font-size:16px;font-weight:bold';d.style.color=w.color;d.textContent=w.damage;
+    const p=document.createElement('div');p.style.cssText='font-size:11px;color:#aaa';
+    if(locked)p.textContent='🔒 五关后';else if(game.ownedWeapons.has(i)){p.textContent=i===game.equippedWeapon?'✅ 装备中':'已拥有';p.style.color='#44ff44'}
+    else p.textContent=`💰${w.price}`;
+    const b=document.createElement('button');b.className='btn btn-primary btn-small';b.style.cssText='margin-top:3px;min-width:60px;font-size:11px;padding:3px 8px';
+    if(locked){b.textContent='🔒';b.disabled=true;b.style.opacity='0.35'}
+    else if(i===game.equippedWeapon){b.textContent='装备中';b.disabled=true;b.className='btn btn-gold btn-small'}
+    else if(game.ownedWeapons.has(i)){b.textContent='装备';b.onclick=()=>{game.equippedWeapon=i;renderShop()}}
+    else{b.textContent=`买${w.price}`;b.onclick=()=>{if(game.coins>=w.price){game.coins-=w.price;game.ownedWeapons.add(i);game.equippedWeapon=i;renderShop();saveGame()}}}
+    c.appendChild(n);c.appendChild(d);c.appendChild(p);c.appendChild(b);g.appendChild(c);
+  });
+  const sg=document.getElementById('shopSkinGrid');sg.innerHTML='';
+  SKINS.forEach((s,i)=>{
+    if(i===0)return;const locked=s.tier===2&&!game.level5Cleared;
+    const c=document.createElement('div');c.className='weapon-card';if(locked)c.style.opacity='0.45';
+    if(i===game.selectedSkin)c.classList.add('equipped');else if(game.ownedSkins.has(i))c.classList.add('owned');
+    const n=document.createElement('div');n.style.cssText='font-size:11px;font-weight:bold;color:#fff';n.textContent=s.name;
+    const d=document.createElement('div');d.style.cssText='font-size:14px';d.style.color='#'+s.laser.toString(16).padStart(6,'0');d.textContent=`×${s.bullets}`;
+    const p=document.createElement('div');p.style.cssText='font-size:11px;color:#aaa';
+    if(locked)p.textContent='🔒 五关后';else if(game.ownedSkins.has(i)){p.textContent=i===game.selectedSkin?'✅ 当前':'已拥有';p.style.color='#44ff44'}
+    else p.textContent=`💰${s.price}`;
+    const b=document.createElement('button');b.className='btn btn-primary btn-small';b.style.cssText='margin-top:3px;min-width:60px;font-size:11px;padding:3px 8px';
+    if(locked){b.textContent='🔒';b.disabled=true;b.style.opacity='0.35'}
+    else if(i===game.selectedSkin){b.textContent='使用中';b.disabled=true;b.className='btn btn-gold btn-small'}
+    else if(game.ownedSkins.has(i)){b.textContent='切换';b.onclick=()=>{game.selectedSkin=i;renderShop()}}
+    else{b.textContent=`买${s.price}`;b.onclick=()=>{if(game.coins>=s.price){game.coins-=s.price;game.ownedSkins.add(i);game.selectedSkin=i;renderShop();saveGame()}}}
+    c.appendChild(n);c.appendChild(d);c.appendChild(p);c.appendChild(b);sg.appendChild(c);
+  });
+  saveGame();
+}
+
+function spawnPlayerShip() {
+  clear3DObjects();
+  const skin=SKINS[game.selectedSkin];
+  playerMesh=new THREE.Group();
+  const bodyGeo=new THREE.BoxGeometry(6,14,4);
+  const bodyMat=new THREE.MeshStandardMaterial({color:skin.body,metalness:0.6,roughness:0.3,emissive:skin.body,emissiveIntensity:0.3});
+  const body=new THREE.Mesh(bodyGeo,bodyMat);body.castShadow=true;playerMesh.add(body);
+  const wingGeo=new THREE.BoxGeometry(18,2,6);
+  const wingMat=new THREE.MeshStandardMaterial({color:skin.wing,metalness:0.7,roughness:0.2,emissive:skin.wing,emissiveIntensity:0.2});
+  const wing=new THREE.Mesh(wingGeo,wingMat);wing.position.y=-4;wing.castShadow=true;playerMesh.add(wing);
+  const noseGeo=new THREE.ConeGeometry(3,8,6);const nose=new THREE.Mesh(noseGeo,bodyMat);nose.position.y=11;nose.castShadow=true;playerMesh.add(nose);
+  const cockpitGeo=new THREE.SphereGeometry(2.5,8,6);
+  const cockpitMat=new THREE.MeshStandardMaterial({color:skin.cockpit,metalness:0.1,roughness:0.1,emissive:skin.cockpit,emissiveIntensity:0.8});
+  const cockpit=new THREE.Mesh(cockpitGeo,cockpitMat);cockpit.position.y=4;cockpit.position.z=2;playerMesh.add(cockpit);
+  const engineGeo=new THREE.CylinderGeometry(1.5,2,4,8);
+  const engineMat=new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff4400,emissiveIntensity:1.5});
+  const engine=new THREE.Mesh(engineGeo,engineMat);engine.position.y=-9;engine.castShadow=true;playerMesh.add(engine);
+  playerMesh.position.set(0,0,10);scene.add(playerMesh);
+}
+
+function createEnemyMesh(enemy) {
+  const l=LEVELS[game.level];const g=new THREE.Group();
+  const bodyGeo=new THREE.BoxGeometry(8,8,6);
+  const bodyMat=new THREE.MeshStandardMaterial({color:l.bossColor,metalness:0.5,roughness:0.4,emissive:l.bossColor,emissiveIntensity:0.3});
+  g.add(new THREE.Mesh(bodyGeo,bodyMat));
+  const headGeo=new THREE.BoxGeometry(5,4,4);
+  g.add(new THREE.Mesh(headGeo,new THREE.MeshStandardMaterial({color:0x333333,metalness:0.6,roughness:0.3})));
+  g.children[1].position.y=6;
+  const eyeGeo=new THREE.SphereGeometry(1.2,4,4);
+  const eyeMat=new THREE.MeshStandardMaterial({color:0xff0000,emissive:0xff0000,emissiveIntensity:1.5});
+  const eyeL=new THREE.Mesh(eyeGeo,eyeMat);eyeL.position.set(-2,6,3);g.add(eyeL);
+  const eyeR=new THREE.Mesh(eyeGeo,eyeMat);eyeR.position.set(2,6,3);g.add(eyeR);
+  const legGeo=new THREE.BoxGeometry(3,6,3);
+  const legL=new THREE.Mesh(legGeo,bodyMat);legL.position.set(-4,-7,0);g.add(legL);
+  const legR=new THREE.Mesh(legGeo,bodyMat);legR.position.set(4,-7,0);g.add(legR);
+  g.position.set(enemy.x,enemy.y,enemy.z);scene.add(g);return g;
+}
+
+function createBossMesh(boss) {
+  const g=new THREE.Group();
+  const bodyGeo=new THREE.BoxGeometry(20,24,16);
+  const bodyMat=new THREE.MeshStandardMaterial({color:boss.color,metalness:0.7,roughness:0.2,emissive:boss.color,emissiveIntensity:0.4});
+  g.add(new THREE.Mesh(bodyGeo,bodyMat));
+  const headGeo=new THREE.BoxGeometry(14,12,10);
+  g.add(new THREE.Mesh(headGeo,new THREE.MeshStandardMaterial({color:0x333333,metalness:0.7,roughness:0.2})));
+  g.children[1].position.y=18;
+  const eyeGeo=new THREE.SphereGeometry(2,6,6);
+  const eyeMat=new THREE.MeshStandardMaterial({color:boss.color,emissive:boss.color,emissiveIntensity:2});
+  g.add(new THREE.Mesh(eyeGeo,eyeMat));g.children[2].position.set(-5,18,8);
+  g.add(new THREE.Mesh(eyeGeo,eyeMat));g.children[3].position.set(5,18,8);
+  const armGeo=new THREE.BoxGeometry(6,18,6);
+  g.add(new THREE.Mesh(armGeo,bodyMat));g.children[4].position.set(-13,-2,0);
+  g.add(new THREE.Mesh(armGeo,bodyMat));g.children[5].position.set(13,-2,0);
+  const legGeo=new THREE.BoxGeometry(8,16,8);
+  g.add(new THREE.Mesh(legGeo,bodyMat));g.children[6].position.set(-8,-20,0);
+  g.add(new THREE.Mesh(legGeo,bodyMat));g.children[7].position.set(8,-20,0);
+  const coreGeo=new THREE.SphereGeometry(4,8,8);
+  const coreMat=new THREE.MeshStandardMaterial({color:boss.color,emissive:boss.color,emissiveIntensity:1.5});
+  g.add(new THREE.Mesh(coreGeo,coreMat));g.children[8].position.y=2;
+  g.position.set(boss.x||0,boss.y||50,boss.z||40);scene.add(g);return g;
+}
+
+function createLaserMesh(laser) {
+  const wp=WEAPONS[game.equippedWeapon];const skin=SKINS[game.selectedSkin];
+  const geo=new THREE.CylinderGeometry(0.4,0.4,6,6);geo.rotateX(Math.PI/2);
+  const mat=new THREE.MeshStandardMaterial({color:skin.laser||wp.color,emissive:skin.laser||wp.color,emissiveIntensity:2});
+  const m=new THREE.Mesh(geo,mat);m.position.set(laser.x,laser.y,laser.z);scene.add(m);return m;
+}
+
+function createGrenadeMesh(grenade) {
+  const geo=new THREE.SphereGeometry(1.5,8,8);
+  const mat=new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff4400,emissiveIntensity:1.5});
+  const m=new THREE.Mesh(geo,mat);m.position.set(grenade.x,grenade.y,grenade.z);scene.add(m);return m;
+}
+
+function clear3DObjects() {
+  if(playerMesh){scene.remove(playerMesh);playerMesh=null}
+  enemyMeshes.forEach(m=>scene.remove(m));enemyMeshes=[];
+  if(bossMesh){scene.remove(bossMesh);bossMesh=null}
+  laserMeshes.forEach(m=>scene.remove(m));laserMeshes=[];
+  grenadeMeshes.forEach(m=>scene.remove(m));grenadeMeshes=[];
+}
+
+function spawnEnemy() {
+  const l=LEVELS[game.level];
+  game.enemies.push({x:(Math.random()-0.5)*80,y:70+Math.random()*20,z:30+Math.random()*20,hp:l.enemyHP,maxHp:l.enemyHP,speed:l.enemySpeed});
+  enemyMeshes.push(createEnemyMesh(game.enemies[game.enemies.length-1]));
+}
+function spawnBoss() {
+  const l=LEVELS[game.level];
+  game.boss={x:0,y:80,z:50,hp:l.bossHP,maxHp:l.bossHP,speed:0.7,targetY:35,type:l.bossType,name:l.bossName,color:l.bossColor,beamTimer:3000,skillTimer:3000+Math.random()*2000};
+  game.bossSpawned=true;game.bossIntro=true;game.bossIntroTime=2000;game.enemies=[];
+  enemyMeshes.forEach(m=>scene.remove(m));enemyMeshes=[];game.ultimateCD=0;
+  bossMesh=createBossMesh(game.boss);
+}
+
+function fireLaser() {
+  if(game.laserCD>0)return;const wp=WEAPONS[game.equippedWeapon];const skin=SKINS[game.selectedSkin];
+  const count=skin.bullets;const spread=(count-1)*1.5;
+  for(let b=0;b<count;b++){
+    const offset=count===1?0:-spread/2+b*(spread/(count-1));
+    const l={x:game.player.x+offset,y:game.player.y+15,z:game.player.z,damage:wp.damage};
+    game.lasers.push(l);laserMeshes.push(createLaserMesh(l));
+  }
+  game.laserCD=LASER_CD;
+}
+function fireGrenade() {
+  if(game.grenadeCD>0)return;const wp=WEAPONS[game.equippedWeapon];const skin=SKINS[game.selectedSkin];
+  const count=skin.bullets;const spread=(count-1)*2;
+  for(let b=0;b<count;b++){
+    const offset=count===1?0:-spread/2+b*(spread/(count-1));
+    const g={x:game.player.x+offset,y:game.player.y+10,z:game.player.z,damage:Math.round(wp.damage*2.5)};
+    game.grenades.push(g);grenadeMeshes.push(createGrenadeMesh(g));
+  }
+  game.grenadeCD=GRENADE_CD;
+}
+function fireUltimate() {
+  if(game.ultimateCD>0||!game.boss||game.boss.hp<=0||game.bossIntro)return;
+  game.ionBeamActive=true;game.ionBeamTimer=40;const wp=WEAPONS[game.equippedWeapon];
+  const dmg=Math.round(wp.damage*100);game.boss.hp-=dmg;game.ultimateCD=ULTIMATE_CD;
+  if(game.boss.hp<=0)defeatBoss();
+}
+function defeatBoss() {
+  game.bossDefeated=true;game.beamWarning=game.beamFiring=null;
+  game.bossMissiles=[];game.mortarZones=[];game.voidRifts=[];game.flameWalls=[];
+  game.lightningBolts=[];game.shockwaves=[];game.gravityWells=[];game.bossProjectiles=[];
+  game.dimensionalRifts=[];game.phaseMirrors=[];game.spiralAngle=-200;
+  game.coins+=500;saveGame();
+  if(bossMesh){scene.remove(bossMesh);bossMesh=null}
+  setTimeout(()=>{
+    if(game.level>=4)game.level5Cleared=true;
+    if(game.level>=LEVELS.length-1)triggerWin();else showLevelComplete();
+  },1500);
+}
+function dist(x1,y1,z1,x2,y2,z2){return Math.sqrt((x1-x2)**2+(y1-y2)**2+(z1-z2)**2)}
+
+function update(dt) {
+  if(game.state==='menu'||game.state==='levelComplete')return;
+  if(game.state==='win'){game.winTimer+=dt;if(game.winTimer>1200&&!game.winShowText){game.winShowText=true;document.getElementById('winScreen').classList.remove('hidden')}}
+  const dts=dt/1000;
+  if(game.laserCD>0)game.laserCD=Math.max(0,game.laserCD-dt);
+  if(game.grenadeCD>0)game.grenadeCD=Math.max(0,game.grenadeCD-dt);
+  if(game.ultimateCD>0)game.ultimateCD=Math.max(0,game.ultimateCD-dt);
+  if(game.ionBeamTimer>0){game.ionBeamTimer--;if(game.ionBeamTimer<=0)game.ionBeamActive=false}
+
+  if(game.state==='playing'||game.state==='boss'){
+    let dx=0,dy=0;
+    if(keys['ArrowLeft']||keys['KeyA'])dx=-1;if(keys['ArrowRight']||keys['KeyD'])dx=1;
+    if(keys['ArrowUp']||keys['KeyW'])dy=1;if(keys['ArrowDown']||keys['KeyS'])dy=-1;
+    if(dx!==0&&dy!==0){dx*=0.707;dy*=0.707}
+    game.player.x+=dx*0.4*dts*60;game.player.y+=dy*0.4*dts*60;
+    game.player.x=Math.max(-40,Math.min(40,game.player.x));
+    game.player.y=Math.max(-15,Math.min(35,game.player.y));
+    if(keys['Space'])fireLaser();if(keys['ShiftLeft']||keys['ShiftRight'])fireGrenade();
+  }
+
+  if(game.state==='playing'&&!game.bossSpawned){
+    game.spawnTimer+=dt;const l=LEVELS[game.level];
+    if(game.spawnTimer>=l.spawnRate&&game.enemies.length<8&&game.kills<KILLS_FOR_BOSS){spawnEnemy();game.spawnTimer=0}
+    for(let i=game.enemies.length-1;i>=0;i--){
+      const e=game.enemies[i];
+      const dx2=game.player.x-e.x,dy2=game.player.y-e.y,dz2=game.player.z-e.z;
+      const d=Math.sqrt(dx2*dx2+dy2*dy2+dz2*dz2);
+      if(d>0){e.x+=dx2/d*e.speed*dts*60;e.y+=dy2/d*e.speed*dts*60;e.z+=dz2/d*e.speed*dts*60}
+      if(e.y<game.player.y-8){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();document.getElementById('gameoverStats').textContent=`击杀: ${game.totalKills}`;return}
+      if(enemyMeshes[i])enemyMeshes[i].position.set(e.x,e.y,e.z);
+    }
+    if(game.kills>=KILLS_FOR_BOSS&&game.enemies.length===0){game.state='boss';spawnBoss()}
+  }
+
+  if(game.state==='boss'&&game.boss&&!game.bossDefeated){
+    const b=game.boss;
+    if(game.bossIntro){game.bossIntroTime-=dt;b.y+=(b.targetY-b.y)*0.03;if(game.bossIntroTime<=0){game.bossIntro=false;b.y=b.targetY}}
+    else{b.beamTimer-=dt;if(b.beamTimer<=0&&!game.beamWarning&&!game.beamFiring){game.beamWarning={x:game.player.x-BEAM_WIDTH/2,w:BEAM_WIDTH,timer:1500};b.beamTimer=5000}}
+    if(bossMesh)bossMesh.position.set(b.x,b.y,b.z);
+    if(game.beamWarning){game.beamWarning.timer-=dt;if(game.beamWarning.timer<=0){
+      game.beamFiring={x:game.beamWarning.x,w:BEAM_WIDTH,timer:800};
+      if(Math.abs(game.player.x-game.beamWarning.x-BEAM_WIDTH/2)<BEAM_WIDTH/2+3){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}
+      game.beamWarning=null}}
+    if(game.beamFiring){if(Math.abs(game.player.x-game.beamFiring.x-BEAM_WIDTH/2)<BEAM_WIDTH/2+3){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}
+      game.beamFiring.timer-=dt;if(game.beamFiring.timer<=0)game.beamFiring=null}
+
+    b.skillTimer-=dt;
+    if(b.skillTimer<=0&&!game.bossDefeated){
+      const st=b.type;
+      if(st===0){for(let i=0;i<6;i++){game.bossMissiles.push({x:b.x,y:b.y,z:b.z,vx:(Math.random()-0.5)*3,vy:1+Math.random()*1.5,vz:(Math.random()-0.5)*3,life:250,r:3})}b.skillTimer=6000}
+      else if(st===1||st===14){for(let i=0;i<12;i++){game.bossProjectiles.push({x:b.x+Math.cos(i*Math.PI/6)*15,y:b.y,z:b.z+Math.sin(i*Math.PI/6)*15,vx:Math.cos(i*Math.PI/6)*2,vy:1.5,vz:Math.sin(i*Math.PI/6)*2,life:200,r:3,color:b.color})}b.skillTimer=st===14?5500:8000}
+      else if(st===2){for(let i=0;i<6;i++){game.mortarZones.push({x:(Math.random()-0.5)*70,y:5+Math.random()*30,z:20+Math.random()*20,r:20,timer:1200,maxTimer:1200})}b.skillTimer=5000}
+      else if(st===3){for(let i=0;i<4;i++){game.voidRifts.push({x:(Math.random()-0.5)*80,y:10+Math.random()*40,z:20+Math.random()*30,r:0,maxR:40,timer:1800,maxTimer:1800,detonated:false})}b.skillTimer=7500}
+      else if(st===4){for(let i=0;i<15;i++){const a=(i/15)*Math.PI*0.8+Math.PI*0.1;game.bossProjectiles.push({x:b.x,y:b.y,z:b.z,vx:Math.cos(a)*3,vy:Math.sin(a)*3+1.5,vz:(Math.random()-0.5)*2,life:200,r:3,color:0xffcc00})}b.skillTimer=7500}
+      else if(st===5){for(let i=0;i<4;i++){game.flameWalls.push({x:(Math.random()-0.5)*70,y:25,z:20+Math.random()*15,w:30,speed:0.5,color:0xff4400})}b.skillTimer=5000}
+      else if(st===6){game.lightningBolts=[];for(let i=0;i<10;i++){game.lightningBolts.push({x:(Math.random()-0.5)*80,timer:400+i*150,maxTimer:400,fired:false})}b.skillTimer=5000}
+      else if(st===7){for(let w=0;w<3;w++){game.shockwaves.push({x:b.x,y:b.y,z:b.z,r:0,maxR:250,speed:3+w,life:60+w*10})}b.skillTimer=4500}
+      else if(st===8){for(let i=0;i<2;i++){game.gravityWells.push({x:(Math.random()-0.5)*70,y:15+Math.random()*25,z:20+Math.random()*20,r:0,maxR:60,timer:2500,maxTimer:2500})}for(let i=0;i<8;i++){game.bossProjectiles.push({x:b.x+Math.cos(i*Math.PI/4)*15,y:b.y,z:b.z+Math.sin(i*Math.PI/4)*10,vx:Math.cos(i*Math.PI/4)*1.5,vy:1,vz:Math.sin(i*Math.PI/4)*1.5,life:300,r:3,color:0x880022})}b.skillTimer=5500}
+      else if(st===9){game.gravityWells.push({x:b.x,y:b.y,z:b.z,r:0,maxR:80,timer:3000,maxTimer:3000});for(let i=0;i<10;i++){const a=i*Math.PI*2/10;game.bossProjectiles.push({x:b.x+Math.cos(a)*20,y:b.y,z:b.z+Math.sin(a)*15,vx:Math.cos(a)*2,vy:1,vz:Math.sin(a)*2,life:250,r:3,color:0xffffff})}b.skillTimer=7500}
+      else if(st>=10&&st<=12){for(let i=0;i<8+(st-10)*3;i++){game.bossProjectiles.push({x:(Math.random()-0.5)*80,y:60+Math.random()*15,z:30+Math.random()*20,vx:(Math.random()-0.5)*2,vy:1+Math.random()*2,vz:(Math.random()-0.5)*2,life:250,r:3,color:b.color})}b.skillTimer=4000+(13-st)*500}
+      else if(st===13){for(let i=0;i<4;i++){game.phaseMirrors.push({x:(Math.random()-0.5)*80,y:10+Math.random()*40,z:20+Math.random()*30,r:0,maxR:45,timer:2000,maxTimer:2000})}b.skillTimer=5500}
+    }
+    for(let i=game.bossMissiles.length-1;i>=0;i--){const m=game.bossMissiles[i];const dx2=game.player.x-m.x,dy2=game.player.y-m.y,dz2=game.player.z-m.z;const d=Math.sqrt(dx2*dx2+dy2*dy2+dz2*dz2);if(d>0){m.x+=dx2/d*2*dts*60;m.y+=dy2/d*2*dts*60;m.z+=dz2/d*2*dts*60}m.life--;if(m.life<=0)game.bossMissiles.splice(i,1);else if(dist(m.x,m.y,m.z,game.player.x,game.player.y,game.player.z)<m.r+4){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}}
+    for(let i=game.bossProjectiles.length-1;i>=0;i--){const p=game.bossProjectiles[i];p.x+=p.vx*dts*60;p.y+=p.vy*dts*60;p.z+=p.vz*dts*60;p.life--;if(p.life<=0||p.y<-10)game.bossProjectiles.splice(i,1);else if(dist(p.x,p.y,p.z,game.player.x,game.player.y,game.player.z)<p.r+4){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}}
+    for(let i=game.mortarZones.length-1;i>=0;i--){const mz=game.mortarZones[i];mz.timer-=dt;if(mz.timer<=0){if(dist(mz.x,mz.y,mz.z,game.player.x,game.player.y,game.player.z)<mz.r+4){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}game.mortarZones.splice(i,1)}}
+    for(let i=game.voidRifts.length-1;i>=0;i--){const vr=game.voidRifts[i];vr.timer-=dt;vr.r=vr.maxR*Math.min(1,1-vr.timer/vr.maxTimer);if(vr.timer<=0&&!vr.detonated){vr.detonated=true;if(dist(vr.x,vr.y,vr.z,game.player.x,game.player.y,game.player.z)<vr.maxR+4){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}}if(vr.timer<-600)game.voidRifts.splice(i,1)}
+    for(let i=game.flameWalls.length-1;i>=0;i--){const fw=game.flameWalls[i];fw.y-=fw.speed*dts*60;if(fw.y<-15)game.flameWalls.splice(i,1);else if(Math.abs(game.player.x-fw.x)<fw.w/2+3&&Math.abs(game.player.y-fw.y)<8){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}}
+    for(let i=game.lightningBolts.length-1;i>=0;i--){const lb=game.lightningBolts[i];lb.timer-=dt;if(lb.timer<=0&&!lb.fired){lb.fired=true;if(Math.abs(game.player.x-lb.x)<35){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}}if(lb.timer<-200)game.lightningBolts.splice(i,1)}
+    for(let i=game.shockwaves.length-1;i>=0;i--){const sw=game.shockwaves[i];sw.r+=sw.speed*dts*60;sw.life--;if(sw.life<=0)game.shockwaves.splice(i,1);else if(dist(sw.x,sw.y,sw.z,game.player.x,game.player.y,game.player.z)<sw.r+5&&dist(sw.x,sw.y,sw.z,game.player.x,game.player.y,game.player.z)>sw.r-20){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}}
+    for(let i=game.gravityWells.length-1;i>=0;i--){const gw=game.gravityWells[i];gw.timer-=dt;gw.r=gw.maxR*Math.min(1,1-gw.timer/gw.maxTimer);const d=dist(gw.x,gw.y,gw.z,game.player.x,game.player.y,game.player.z);if(d<gw.r&&d>0){const pull=(1-d/gw.r)*2*dts*60;game.player.x+=(gw.x-game.player.x)/d*pull;game.player.y+=(gw.y-game.player.y)/d*pull;game.player.z+=(gw.z-game.player.z)/d*pull}if(gw.timer<=0){if(d<gw.maxR){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}game.gravityWells.splice(i,1)}}
+    for(let i=game.phaseMirrors.length-1;i>=0;i--){const pm=game.phaseMirrors[i];pm.timer-=dt;pm.r=pm.maxR*Math.min(1,1-pm.timer/pm.maxTimer);if(pm.timer<=0){if(dist(pm.x,pm.y,pm.z,game.player.x,game.player.y,game.player.z)<pm.maxR+4){game.state='gameover';document.getElementById('gameoverScreen').classList.remove('hidden');populateLevelSelect();return}game.phaseMirrors.splice(i,1)}}
+  }
+
+  for(let i=game.lasers.length-1;i>=0;i--){const l=game.lasers[i];l.y+=0.8*dts*60;if(l.y>80){game.lasers.splice(i,1);if(laserMeshes[i]){scene.remove(laserMeshes[i]);laserMeshes.splice(i,1)}continue}
+    let hit=false;
+    for(let j=game.enemies.length-1;j>=0;j--){const e=game.enemies[j];if(dist(l.x,l.y,l.z,e.x,e.y,e.z)<5){e.hp-=l.damage;hit=true;if(e.hp<=0){game.kills++;game.totalKills++;game.coins+=10;game.enemies.splice(j,1);if(enemyMeshes[j]){scene.remove(enemyMeshes[j]);enemyMeshes.splice(j,1)}}break}}
+    if(!hit&&game.boss&&game.boss.hp>0){if(dist(l.x,l.y,l.z,game.boss.x,game.boss.y,game.boss.z)<12){game.boss.hp-=l.damage;hit=true;if(game.boss.hp<=0&&!game.bossDefeated)defeatBoss()}}
+    if(hit){game.lasers.splice(i,1);if(laserMeshes[i]){scene.remove(laserMeshes[i]);laserMeshes.splice(i,1)}}
+    else if(laserMeshes[i])laserMeshes[i].position.set(l.x,l.y,l.z);
+  }
+
+  for(let i=game.grenades.length-1;i>=0;i--){const g=game.grenades[i];g.y+=0.5*dts*60;if(g.y>80){game.grenades.splice(i,1);if(grenadeMeshes[i]){scene.remove(grenadeMeshes[i]);grenadeMeshes.splice(i,1)}continue}
+    let exploded=false;
+    for(const e of game.enemies){if(dist(g.x,g.y,g.z,e.x,e.y,e.z)<8){exploded=true;break}}
+    if(!exploded&&game.boss&&game.boss.hp>0&&dist(g.x,g.y,g.z,game.boss.x,game.boss.y,game.boss.z)<16)exploded=true;
+    if(exploded||g.y>75){for(let j=game.enemies.length-1;j>=0;j--){const e=game.enemies[j];if(dist(g.x,g.y,g.z,e.x,e.y,e.z)<80){e.hp-=g.damage;if(e.hp<=0){game.kills++;game.totalKills++;game.coins+=10;game.enemies.splice(j,1);if(enemyMeshes[j]){scene.remove(enemyMeshes[j]);enemyMeshes.splice(j,1)}}}}
+      if(game.boss&&game.boss.hp>0&&dist(g.x,g.y,g.z,game.boss.x,game.boss.y,game.boss.z)<80){game.boss.hp-=g.damage;if(game.boss.hp<=0&&!game.bossDefeated)defeatBoss()}
+      game.grenades.splice(i,1);if(grenadeMeshes[i]){scene.remove(grenadeMeshes[i]);grenadeMeshes.splice(i,1)}}
+    else if(grenadeMeshes[i])grenadeMeshes[i].position.set(g.x,g.y,g.z);
+  }
+
+  if(playerMesh)playerMesh.position.set(game.player.x,game.player.y,game.player.z);
+}
+
+function render() {
+  const dts=0.016;
+  if(game.state!=='menu'&&game.state!=='levelComplete'){
+    document.getElementById('uiLevel').textContent=`${LEVELS[game.level]?.name||''} | 击杀: ${game.kills}${!game.bossSpawned?'/'+KILLS_FOR_BOSS:''}`;
+    document.getElementById('uiCoins').textContent=`💰 ${game.coins}`;
+    const wp=WEAPONS[game.equippedWeapon];document.getElementById('uiWeapon').textContent=`武器: ${wp.name} (${wp.damage})`;
+    const gCd=Math.ceil(game.grenadeCD/1000);document.getElementById('uiGrenade').textContent=`💣 榴弹 ${game.grenadeCD>0?gCd+'s':'就绪'}`;
+    const lCd=Math.ceil(game.laserCD/1000);document.getElementById('uiLaser').textContent=`🔫 激光 ${game.laserCD>0?lCd+'s':'就绪'}`;
+    if(game.bossSpawned){const uCd=Math.ceil(game.ultimateCD/1000);document.getElementById('uiUltimate').textContent=`⚡ 终极 ${game.ultimateCD>0?uCd+'s':'按Enter'}`}
+    else document.getElementById('uiUltimate').textContent='';
+  }
+  const sx=(Math.random()-0.5)*game.screenShake*0.3,sy=(Math.random()-0.5)*game.screenShake*0.3;
+  camera.position.x=sx;camera.position.y=90+sy;
+  renderer.render(scene,camera);
+  requestAnimationFrame(render);
+}
+
+function gameLoop(ts) {
+  const dt=ts-(game._lastTs||ts);game._lastTs=ts;if(dt>50)return;
+  update(Math.min(dt,50));
+}
+
+document.addEventListener('keydown',e=>{keys[e.code]=true;e.preventDefault()});
+document.addEventListener('keyup',e=>{keys[e.code]=false;e.preventDefault()});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Enter'){
+    if(game.state==='menu')startGame();
+    else if((game.state==='playing'||game.state==='boss')&&game.ultimateCD<=0&&game.boss&&game.boss.hp>0&&!game.bossIntro)fireUltimate();
+  }
+  if(e.code==='KeyR'&&(game.state==='gameover'||game.state==='win'))restartGame();
+});
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight)});
+
+const starsGeo=new THREE.BufferGeometry();const starsCount=800;
+const starsPos=new Float32Array(starsCount*3);
+for(let i=0;i<starsCount*3;i+=3){starsPos[i]=(Math.random()-0.5)*200;starsPos[i+1]=Math.random()*120-10;starsPos[i+2]=Math.random()*60}
+starsGeo.setAttribute('position',new THREE.BufferAttribute(starsPos,3));
+starParticles=new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xffffff,size:0.3}));
+scene.add(starParticles);
+
+initGameState();
+localStorage.removeItem('mech3d_save');
+loadGame();
+renderSkinGrid();
+game._lastTs=0;
+requestAnimationFrame(gameLoop);
+render();
+</script>
+</body>
+</html>
