@@ -402,7 +402,7 @@ const LEVELS = [
   { name: '第四关', enemies: 50, bossHP: 352000, enemyHP: 45, enemySpeed: 1.3, spawnRate: 40, bossType: 3, bossName: 'Shadow Phantom', bossColor: '#aa44ff' },
   { name: '第五关', enemies: 50, bossHP: 448000, enemyHP: 50, enemySpeed: 1.6, spawnRate: 35, bossType: 4, bossName: 'Overlord Prime', bossColor: '#ffcc00' },
   { name: '第六关', enemies: 50, bossHP: 560000, enemyHP: 55, enemySpeed: 1.9, spawnRate: 32, bossType: 5, bossName: 'Hellfire Colossus', bossColor: '#ff5500' },
-  { name: '第七关', enemies: 50, bossHP: 700000, enemyHP: 60, enemySpeed: 2.2, spawnRate: 30, bossType: 6, bossName: 'Storm Harbinger', bossColor: '#00bbff' },
+  { name: '第七关', enemies: 50, bossHP: 700000, enemyHP: 60, enemySpeed: 2.2, spawnRate: 30, bossType: 14, bossName: 'Omega Prime', bossColor: '#ffddff' },
   { name: '第八关', enemies: 50, bossHP: 880000, enemyHP: 65, enemySpeed: 2.5, spawnRate: 28, bossType: 7, bossName: 'Juggernaut Behemoth', bossColor: '#aa8844' },
   { name: '第九关', enemies: 50, bossHP: 1100000, enemyHP: 70, enemySpeed: 2.8, spawnRate: 26, bossType: 8, bossName: 'Void Weaver', bossColor: '#880022' },
   { name: '第十关', enemies: 50, bossHP: 1400000, enemyHP: 80, enemySpeed: 3.2, spawnRate: 24, bossType: 9, bossName: 'Godslayer Omega', bossColor: '#ffffff' },
@@ -410,7 +410,7 @@ const LEVELS = [
   { name: '第十二关', enemies: 50, bossHP: 2400000, enemyHP: 105, enemySpeed: 4.0, spawnRate: 20, bossType: 11, bossName: 'Celestial Warden', bossColor: '#88aaff' },
   { name: '第十三关', enemies: 50, bossHP: 3200000, enemyHP: 120, enemySpeed: 4.5, spawnRate: 18, bossType: 12, bossName: 'Inferno Warlord', bossColor: '#cc2200' },
   { name: '第十四关', enemies: 50, bossHP: 4200000, enemyHP: 140, enemySpeed: 5.0, spawnRate: 16, bossType: 13, bossName: 'Quantum Architect', bossColor: '#44cccc' },
-  { name: '第十五关', enemies: 50, bossHP: 5600000, enemyHP: 160, enemySpeed: 5.5, spawnRate: 14, bossType: 14, bossName: 'Omega Prime', bossColor: '#ffddff' },
+  { name: '第十五关', enemies: 50, bossHP: 5600000, enemyHP: 160, enemySpeed: 5.5, spawnRate: 14, bossType: 6, bossName: 'Storm Harbinger', bossColor: '#00bbff' },
 ];
 
 let game = {};
@@ -1343,8 +1343,15 @@ function update(dt) {
             r: 0, maxR: 130, timer: 2500, maxTimer: 2500,
           });
         }
+        for (let i = 0; i < 8; i++) {
+          game.bossProjectiles.push({
+            x: b.x+b.w/2+Math.cos(i*Math.PI/4)*60, y: b.y+b.h/2+Math.sin(i*Math.PI/4)*50,
+            vx: Math.cos(i*Math.PI/4)*1.5, vy: Math.sin(i*Math.PI/4)*1.5,
+            life: 300, r: 7, color: '#880022',
+          });
+        }
         playTone(80, 0.5, 'triangle', 0.08, 20);
-        b.skillTimer = 6500;
+        b.skillTimer = 5500;
       } else if (st === 9) {
         game.gravityWells.push({
           x: b.x+b.w/2, y: b.y+b.h/2, r: 0, maxR: 180, timer: 3000, maxTimer: 3000,
