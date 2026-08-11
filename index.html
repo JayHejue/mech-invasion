@@ -1676,6 +1676,17 @@ function update(dt) {
         game.particles.push({ x:g.x, y:g.y, vx:Math.cos(a)*spd, vy:Math.sin(a)*spd, life:20+Math.random()*30, maxLife:40, r:2+Math.random()*5, color:['#ff6600','#ff4400','#ffcc00','#ffffff'][Math.floor(Math.random()*4)] });
       }
       if (!exploded) game.screenShake = 10;
+      for (let j = game.bossMissiles.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.bossMissiles[j].x,game.bossMissiles[j].y) < GRENADE_RADIUS) { for (let k=0;k<6;k++) game.particles.push({ x:game.bossMissiles[j].x, y:game.bossMissiles[j].y, vx:(Math.random()-0.5)*6, vy:(Math.random()-0.5)*6, life:10+Math.random()*10, maxLife:18, r:1+Math.random()*3, color:'#ff8800' }); game.bossMissiles.splice(j,1); } }
+      for (let j = game.bossProjectiles.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.bossProjectiles[j].x,game.bossProjectiles[j].y) < GRENADE_RADIUS) { for (let k=0;k<4;k++) game.particles.push({ x:game.bossProjectiles[j].x, y:game.bossProjectiles[j].y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, life:8+Math.random()*8, maxLife:14, r:1+Math.random()*2, color:game.bossProjectiles[j].color||'#ff4400' }); game.bossProjectiles.splice(j,1); } }
+      for (let j = game.mortarZones.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.mortarZones[j].x,game.mortarZones[j].y) < GRENADE_RADIUS) { game.mortarZones.splice(j,1); } }
+      for (let j = game.voidRifts.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.voidRifts[j].x,game.voidRifts[j].y) < GRENADE_RADIUS) { game.voidRifts.splice(j,1); } }
+      for (let j = game.flameWalls.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.flameWalls[j].x,game.flameWalls[j].y) < GRENADE_RADIUS) { game.flameWalls.splice(j,1); } }
+      for (let j = game.lightningBolts.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.lightningBolts[j].x,game.lightningBolts[j].y||g.y) < GRENADE_RADIUS) { game.lightningBolts.splice(j,1); } }
+      for (let j = game.shockwaves.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.shockwaves[j].x,game.shockwaves[j].y) < GRENADE_RADIUS) { game.shockwaves.splice(j,1); } }
+      for (let j = game.gravityWells.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.gravityWells[j].x,game.gravityWells[j].y) < GRENADE_RADIUS) { game.gravityWells.splice(j,1); } }
+      for (let j = game.phaseMirrors.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.phaseMirrors[j].x,game.phaseMirrors[j].y) < GRENADE_RADIUS) { game.phaseMirrors.splice(j,1); } }
+      for (let j = (game.bossClones||[]).length-1; j >= 0; j--) { if (dist(g.x,g.y,game.bossClones[j].x,game.bossClones[j].y) < GRENADE_RADIUS) { game.bossClones.splice(j,1); } }
+      for (let j = (game.dimensionalRifts||[]).length-1; j >= 0; j--) { if (dist(g.x,g.y,game.dimensionalRifts[j].x,game.dimensionalRifts[j].y) < GRENADE_RADIUS) { game.dimensionalRifts.splice(j,1); } }
       game.grenades.splice(i,1);
     }
   }
