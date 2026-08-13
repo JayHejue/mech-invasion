@@ -1689,7 +1689,7 @@ function update(dt) {
       for (let j = game.mortarZones.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.mortarZones[j].x,game.mortarZones[j].y) < GRENADE_RADIUS) { game.mortarZones.splice(j,1); } }
       for (let j = game.voidRifts.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.voidRifts[j].x,game.voidRifts[j].y) < GRENADE_RADIUS) { game.voidRifts.splice(j,1); } }
       for (let j = game.flameWalls.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.flameWalls[j].x,game.flameWalls[j].y) < GRENADE_RADIUS) { game.flameWalls.splice(j,1); } }
-      for (let j = game.lightningBolts.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.lightningBolts[j].x,game.lightningBolts[j].y||g.y) < GRENADE_RADIUS) { game.lightningBolts.splice(j,1); } }
+      for (let j = game.lightningBolts.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.lightningBolts[j].x,game.lightningBolts[j].y||g.y) < GRENADE_RADIUS && Math.random() < 0.5) { game.lightningBolts.splice(j,1); } }
       for (let j = game.shockwaves.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.shockwaves[j].x,game.shockwaves[j].y) < GRENADE_RADIUS) { game.shockwaves.splice(j,1); } }
       for (let j = game.gravityWells.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.gravityWells[j].x,game.gravityWells[j].y) < GRENADE_RADIUS) { game.gravityWells.splice(j,1); } }
       for (let j = game.phaseMirrors.length-1; j >= 0; j--) { if (dist(g.x,g.y,game.phaseMirrors[j].x,game.phaseMirrors[j].y) < GRENADE_RADIUS) { game.phaseMirrors.splice(j,1); } }
