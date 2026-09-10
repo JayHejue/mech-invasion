@@ -214,6 +214,55 @@ body {
   flex-wrap: wrap; justify-content: center;
 }
 
+.photo-container {
+  position: relative; flex-shrink: 0;
+}
+
+.photo-frame {
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  padding: 4px;
+  background: conic-gradient(from 0deg, var(--cyan), var(--purple), var(--pink), var(--cyan));
+  animation: photoRotate 6s linear infinite;
+  position: relative;
+}
+
+.photo-frame::after {
+  content: '';
+  position: absolute; inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,240,255,0.2);
+  animation: photoPulse 3s ease-in-out infinite;
+}
+
+@keyframes photoRotate {
+  to { background: conic-gradient(from 360deg, var(--cyan), var(--purple), var(--pink), var(--cyan)); }
+}
+
+@keyframes photoPulse {
+  0%,100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.08); opacity: 0.6; }
+}
+
+.photo-frame img {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-glow {
+  position: absolute; inset: -30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,240,255,0.15), transparent 70%);
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%,100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
 .info-card {
   background: var(--card-bg);
   border: 1px solid rgba(0,240,255,0.15);
@@ -348,18 +397,45 @@ body {
 
 .project-card::before {
   content: '';
+  position: absolute; inset: -2px;
+  border-radius: 18px;
+  padding: 2px;
+  background: conic-gradient(from var(--angle, 0deg), transparent 40%, var(--cyan), var(--purple), var(--pink), var(--cyan), transparent 60%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.6;
+  animation: borderRotate 4s linear infinite;
+  z-index: -1;
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes borderRotate {
+  to { --angle: 360deg; }
+}
+
+.project-card::after {
+  content: '';
   position: absolute; inset: 0;
   border-radius: 16px;
   padding: 1px;
-  background: linear-gradient(135deg, transparent, var(--cyan), var(--purple), transparent);
+  background: conic-gradient(from var(--angle, 0deg), transparent 40%, var(--cyan), var(--purple), var(--pink), var(--cyan), transparent 60%);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 0;
   transition: opacity 0.4s;
+  animation: borderRotate 4s linear infinite;
+  z-index: 1;
+  pointer-events: none;
 }
 
-.project-card:hover::before { opacity: 1; }
+.project-card:hover::after { opacity: 1; }
 
 .project-card:hover {
   transform: translateY(-8px) scale(1.02);
@@ -635,6 +711,13 @@ body {
 
   <!-- PROFILE -->
   <section class="profile-section">
+    <div class="photo-container">
+      <div class="photo-glow"></div>
+      <div class="photo-frame">
+        <img src="photo.jpg" alt="Profile Photo">
+      </div>
+    </div>
+
     <div class="info-card">
       <h2>/// SYSTEM PROFILE</h2>
 
