@@ -384,7 +384,6 @@ body {
 
 .project-card {
   background: var(--card-bg);
-  border: 1px solid rgba(0,240,255,0.1);
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -397,45 +396,25 @@ body {
 
 .project-card::before {
   content: '';
-  position: absolute; inset: -2px;
-  border-radius: 18px;
-  padding: 2px;
-  background: conic-gradient(from var(--angle, 0deg), transparent 40%, var(--cyan), var(--purple), var(--pink), var(--cyan), transparent 60%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0.6;
-  animation: borderRotate 4s linear infinite;
-  z-index: -1;
-}
-
-@property --angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
-
-@keyframes borderRotate {
-  to { --angle: 360deg; }
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: conic-gradient(from 0deg, transparent, var(--cyan), var(--purple), var(--pink), var(--cyan), transparent);
+  animation: borderSpin 3s linear infinite;
+  z-index: -2;
 }
 
 .project-card::after {
   content: '';
-  position: absolute; inset: 0;
-  border-radius: 16px;
-  padding: 1px;
-  background: conic-gradient(from var(--angle, 0deg), transparent 40%, var(--cyan), var(--purple), var(--pink), var(--cyan), transparent 60%);
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  opacity: 0;
-  transition: opacity 0.4s;
-  animation: borderRotate 4s linear infinite;
-  z-index: 1;
-  pointer-events: none;
+  position: absolute; inset: 2px;
+  background: var(--card-bg);
+  border-radius: 14px;
+  z-index: -1;
 }
 
-.project-card:hover::after { opacity: 1; }
+@keyframes borderSpin {
+  to { transform: rotate(360deg); }
+}
 
 .project-card:hover {
   transform: translateY(-8px) scale(1.02);
