@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D 跑酷</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; background: #000; font-family: 'Arial', sans-serif; }
+canvas { display: block; }
+#ui {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  color: #fff; font-size: 28px; font-weight: bold;
+  text-shadow: 0 0 20px rgba(0,255,255,0.8); z-index: 10;
+  pointer-events: none; text-align: center;
+}
+#score { font-size: 52px; color: #0ff; }
+#coins-display { font-size: 18px; color: #fd0; margin-top: 2px; }
+#combo { font-size: 22px; color: #ff0; display: block; opacity: 0; transition: opacity 0.3s; }
+#speed-label { position: absolute; top: 90px; right: 20px; color: #fff; font-size: 13px; }
+#active-items { position: absolute; top: 90px; left: 20px; color: #fff; font-size: 12px; }
+#overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; z-index: 100; pointer-events: none;
+}
+#overlay.hidden { display: none; }
+#overlay h1 { color: #0ff; font-size: 64px; text-shadow: 0 0 40px rgba(0,255,255,0.6); }
+#overlay p { color: #ccc; font-size: 16px; margin: 8px 0; }
+#overlay .wallet { color: #fd0; font-size: 20px; margin: 5px 0; }
+#overlay button {
+  margin: 5px; padding: 12px 40px; font-size: 20px; cursor: pointer;
+  background: linear-gradient(135deg, #0ff, #08f); border: none; color: #000;
+  border-radius: 25px; font-weight: bold; pointer-events: all;
+  box-shadow: 0 0 20px rgba(0,255,255,0.4);
+  transition: transform 0.2s;
+}
+#overlay button:hover { transform: scale(1.08); }
+#shop {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  z-index: 200; display: none; flex-direction: column; align-items: center;
+  background: rgba(10,10,30,0.95); border: 2px solid #0ff; border-radius: 20px;
+  padding: 30px; min-width: 360px; pointer-events: all;
+  box-shadow: 0 0 60px rgba(0,0,0,0.8);
+}
+#shop h2 { color: #0ff; font-size: 28px; margin-bottom: 15px; }
+#shop .balance { color: #fd0; font-size: 16px; margin-bottom: 15px; }
+#shop .item {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+#shop .item-info { flex: 1; }
+#shop .item-name { color: #fff; font-size: 15px; }
+#shop .item-desc { color: #888; font-size: 12px; }
+#shop .item-cost { color: #fd0; font-size: 14px; margin-right: 10px; }
+#shop .item-buy {
+  padding: 6px 16px; font-size: 14px; cursor: pointer;
+  background: #0aa; border: none; color: #000; border-radius: 15px;
+  font-weight: bold;
+}
+#shop .item-buy.sold { background: #555; color: #333; cursor: default; }
+#shop .item-own { color: #0f0; font-size: 12px; margin-right: 8px; }
+#shop .close-btn {
+  margin-top: 15px; padding: 8px 30px; font-size: 16px; cursor: pointer;
+  background: #555; border: none; color: #fff; border-radius: 15px;
+}
+.tab-btn {
+  padding: 6px 20px; font-size: 15px; cursor: pointer;
+  background: #333; border: none; color: #888; border-radius: 15px;
+  transition: 0.2s;
+}
+.tab-btn.active { background: #0aa; color: #000; }
+.skin-item {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.skin-preview {
+  width: 24px; height: 24px; border-radius: 50%; margin-right: 10px;
+  border: 2px solid rgba(255,255,255,0.3);
+}
+.skin-preview.active { border-color: #0ff; }
+.skin-info { flex: 1; }
+.skin-name { color: #fff; font-size: 15px; }
+.skin-status { color: #0f0; font-size: 12px; }
+.skin-cost { color: #fd0; font-size: 14px; margin-right: 10px; }
+.skin-buy {
+  padding: 6px 16px; font-size: 14px; cursor: pointer;
+  background: #0aa; border: none; color: #000; border-radius: 15px;
+  font-weight: bold;
+}
+.skin-buy.sold { background: #555; color: #333; cursor: default; }
+.skin-equip {
+  padding: 6px 16px; font-size: 14px; cursor: pointer;
+  background: #0ff; border: none; color: #000; border-radius: 15px;
+  font-weight: bold;
+}
+.use-item-btn {
+  padding: 5px 12px; font-size: 12px; cursor: pointer;
+  background: #0ff; border: none; color: #000; border-radius: 12px;
+  font-weight: bold; pointer-events: all;
+}
+.use-item-btn:hover { background: #0ee; transform: scale(1.05); }
+.item-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 4px 10px; border-radius: 12px;
+  background: rgba(0,255,255,0.12); border: 1px solid rgba(0,255,255,0.3);
+  color: #fff; font-size: 12px; pointer-events: all;
+}
+.mobile-controls {
+  display: none; position: absolute; bottom: 30px; width: 100%;
+  justify-content: center; gap: 20px; z-index: 10;
+}
+@media (max-width: 768px) {
+  .mobile-controls { display: flex; }
+  .mobile-btn {
+    width: 70px; height: 70px; border-radius: 50%; border: 3px solid rgba(0,255,255,0.6);
+    background: rgba(0,0,0,0.4); color: #0ff; font-size: 22px;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none; touch-action: manipulation;
+  }
+  .mobile-btn:active { background: rgba(0,255,255,0.3); }
+}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div id="score">0</div>
+  <div id="coins-display">🪙 0</div>
+  <div id="combo">COMBO x1</div>
+</div>
+<div id="speed-label"></div>
+<div id="active-items"></div>
+
+<div id="shop">
+  <h2>🏪 商店</h2>
+  <div style="display:flex;gap:10px;margin-bottom:10px;">
+    <button class="tab-btn active" data-tab="items">道具</button>
+    <button class="tab-btn" data-tab="skins">皮肤</button>
+  </div>
+  <div class="balance" id="shop-balance">余额: 🪙 0</div>
+  <div id="shop-items"></div>
+  <div id="shop-skins" style="display:none;"></div>
+  <button class="close-btn" id="shop-close">关闭商店</button>
+</div>
+
+<div id="overlay">
+  <h1>🏙️ 3D 跑酷</h1>
+  <p>空格/点击 跳跃 | 二段跳 | 左右键切换跑道 | S键滑铲</p>
+  <p style="font-size:13px;color:#888;">收集金币 · 躲避障碍 · 挑战高分</p>
+  <div class="wallet" id="wallet-display">🪙 0</div>
+  <div id="owned-items" style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:320px; margin:5px 0;"></div>
+  <button id="shop-btn">🛒 商店</button>
+  <button id="start-btn">开始游戏</button>
+</div>
+<div class="mobile-controls">
+  <div class="mobile-btn" id="btn-left">◀</div>
+  <div class="mobile-btn" id="btn-jump">▲</div>
+  <div class="mobile-btn" id="btn-right">▶</div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a1e);
+scene.fog = new THREE.Fog(0x0a0a1e, 70, 280);
+
+const camera = new THREE.PerspectiveCamera(65, innerWidth / innerHeight, 0.5, 300);
+camera.position.set(0, 8, -14);
+camera.lookAt(0, 2, 20);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0x334466, 2));
+const dirLight = new THREE.DirectionalLight(0xffeedd, 5);
+dirLight.position.set(30, 50, 20);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 200;
+dirLight.shadow.camera.left = -40;
+dirLight.shadow.camera.right = 40;
+dirLight.shadow.camera.top = 30;
+dirLight.shadow.camera.bottom = -30;
+scene.add(dirLight);
+
+const neonLights = [];
+for (let i = 0; i < 8; i++) {
+  const pl = new THREE.PointLight(0x00aaff, 0, 25);
+  scene.add(pl);
+  neonLights.push(pl);
+}
+
+const starField = new THREE.BufferGeometry();
+const starVerts = [];
+for (let i = 0; i < 600; i++) {
+  starVerts.push((Math.random() - 0.5) * 200, 20 + Math.random() * 60, (Math.random() - 0.5) * 200);
+}
+starField.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+const stars = new THREE.Points(starField, new THREE.PointsMaterial({ color: 0xffffff, size: 0.15 }));
+scene.add(stars);
+
+const bgGeo = new THREE.PlaneGeometry(300, 500);
+const bgMat = new THREE.MeshStandardMaterial({ color: 0x121228, roughness: 0.95 });
+const bg = new THREE.Mesh(bgGeo, bgMat);
+bg.rotation.x = -Math.PI / 2;
+bg.position.y = -0.01;
+bg.receiveShadow = true;
+scene.add(bg);
+
+const roadGeo = new THREE.BoxGeometry(7, 0.4, 500);
+const roadMat = new THREE.MeshStandardMaterial({ color: 0x334455, roughness: 0.4 });
+const road = new THREE.Mesh(roadGeo, roadMat);
+road.position.set(0, 0.2, 150);
+road.castShadow = true;
+road.receiveShadow = true;
+scene.add(road);
+
+const SHOP_ITEMS = [
+  { id: 'magnet', name: '磁铁', desc: '自动吸取附近金币', cost: 60, duration: 8, icon: '🧲' },
+  { id: 'shield', name: '护盾', desc: '抵挡一次障碍物', cost: 80, duration: 0, icon: '🛡️' },
+  { id: 'double_score', name: '双倍积分', desc: '8秒内积分翻倍', cost: 100, duration: 8, icon: 'x2' },
+  { id: 'slow_mo', name: '减速', desc: '6秒内速度减半', cost: 50, duration: 6, icon: '🐌' },
+];
+
+const SKINS = [
+  { id: 'default', name: '默认蓝', body: 0x0088ff, limb: 0x0088ff, cost: 0, owned: true },
+  { id: 'red', name: '烈焰红', body: 0xff3333, limb: 0xff3333, cost: 150, owned: false },
+  { id: 'green', name: '霓虹绿', body: 0x00ff66, limb: 0x00ff66, cost: 150, owned: false },
+  { id: 'gold', name: '土豪金', body: 0xffaa00, limb: 0xffaa00, cost: 300, owned: false },
+  { id: 'purple', name: '神秘紫', body: 0xaa44ff, limb: 0xaa44ff, cost: 200, owned: false },
+  { id: 'white', name: '极简白', body: 0xeeeeff, limb: 0xeeeeff, cost: 250, owned: false },
+];
+
+let totalCoins = 0;
+let inventory = {};
+for (const item of SHOP_ITEMS) {
+  inventory[item.id] = 0;
+}
+let hasSpeedBoost = false;
+let activeSkin = 'default';
+const ownedSkins = { default: true };
+
+function applySkin(skinId) {
+  const skin = SKINS.find(s => s.id === skinId);
+  if (!skin) return;
+  activeSkin = skinId;
+  torso.material.color.set(skin.body);
+  torso.material.emissive.set(0x000000);
+  leftArm.material.color.set(skin.limb);
+  rightArm.material.color.set(skin.limb);
+}
+
+function updateShopUI() {
+  document.getElementById('shop-balance').textContent = `余额: 🪙 ${totalCoins}`;
+  document.getElementById('wallet-display').textContent = `🪙 ${totalCoins}`;
+  document.getElementById('coins-display').textContent = `🪙 ${totalCoins}`;
+
+  const itemsDiv = document.getElementById('shop-items');
+  itemsDiv.innerHTML = '';
+
+  const allItems = [...SHOP_ITEMS,     { id: 'boost', name: '氮气加速', desc: '按1键开关·无限次使用', cost: 80, duration: 0, icon: '⚡' }];
+
+  for (const item of allItems) {
+    if (item.id === 'boost') {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `
+        <div class="item-info">
+          <div class="item-name">${item.icon} ${item.name}</div>
+          <div class="item-desc">${item.desc}</div>
+        </div>
+        ${hasSpeedBoost ? '<span style="color:#0f0;">已拥有</span>' : `
+          <span class="item-cost">${item.cost} 🪙</span>
+          <button class="item-buy ${totalCoins < item.cost ? 'sold' : ''}" data-id="boost">
+            ${totalCoins >= item.cost ? '购买' : '不足'}
+          </button>
+        `}
+      `;
+      itemsDiv.appendChild(div);
+      if (!hasSpeedBoost) {
+        div.querySelector('.item-buy')?.addEventListener('click', () => {
+          if (totalCoins >= item.cost) {
+            totalCoins -= item.cost;
+            hasSpeedBoost = true;
+            updateShopUI();
+          }
+        });
+      }
+      continue;
+    }
+    const own = inventory[item.id] || 0;
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <div class="item-info">
+        <div class="item-name">${item.icon} ${item.name}</div>
+        <div class="item-desc">${item.desc}${item.duration ? ' (' + item.duration + '秒)' : ''}</div>
+      </div>
+      <span class="item-cost">${item.cost} 🪙</span>
+      ${own > 0 ? `<span class="item-own">x${own}</span>` : ''}
+      <button class="item-buy ${totalCoins < item.cost ? 'sold' : ''}" data-id="${item.id}">
+        ${totalCoins >= item.cost ? '购买' : '不足'}
+      </button>
+    `;
+    itemsDiv.appendChild(div);
+  }
+  document.querySelectorAll('.item-buy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const item = SHOP_ITEMS.find(i => i.id === id);
+      if (totalCoins >= item.cost) {
+        totalCoins -= item.cost;
+        inventory[id] = (inventory[id] || 0) + 1;
+        updateShopUI();
+      }
+    });
+  });
+
+  const skinsDiv = document.getElementById('shop-skins');
+  skinsDiv.innerHTML = '';
+  for (const skin of SKINS) {
+    const owned = ownedSkins[skin.id] || false;
+    const isActive = activeSkin === skin.id;
+    const div = document.createElement('div');
+    div.className = 'skin-item';
+    div.innerHTML = `
+      <div class="skin-preview${isActive ? ' active' : ''}" style="background:#${skin.body.toString(16).padStart(6, '0')};"></div>
+      <div class="skin-info">
+        <div class="skin-name">${skin.name}</div>
+        ${isActive ? '<span class="skin-status">使用中</span>' : ''}
+      </div>
+      ${!owned ? `<span class="skin-cost">${skin.cost} 🪙</span>
+        <button class="skin-buy ${totalCoins < skin.cost ? 'sold' : ''}" data-sid="${skin.id}">
+          ${totalCoins >= skin.cost ? '购买' : '不足'}
+        </button>` : !isActive ? `<button class="skin-equip" data-sid="${skin.id}">装备</button>` : ''}
+    `;
+    skinsDiv.appendChild(div);
+  }
+  document.querySelectorAll('.skin-buy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sid = btn.dataset.sid;
+      const skin = SKINS.find(s => s.id === sid);
+      if (totalCoins >= skin.cost) {
+        totalCoins -= skin.cost;
+        ownedSkins[sid] = true;
+        updateShopUI();
+      }
+    });
+  });
+  document.querySelectorAll('.skin-equip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      applySkin(btn.dataset.sid);
+      updateShopUI();
+    });
+  });
+
+  const ownedDiv = document.getElementById('owned-items');
+  if (ownedDiv) {
+    ownedDiv.innerHTML = '';
+    let hasItems = false;
+    for (const item of SHOP_ITEMS) {
+      const own = inventory[item.id] || 0;
+      if (own > 0) {
+        hasItems = true;
+        const btn = document.createElement('button');
+        btn.className = 'use-item-btn';
+        btn.textContent = `${item.icon} ${item.name} x${own}`;
+        btn.addEventListener('click', () => { useShopItem(item.id); startGame(); });
+        ownedDiv.appendChild(btn);
+      }
+    }
+  }
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('shop-items').style.display = tab === 'items' ? '' : 'none';
+    document.getElementById('shop-skins').style.display = tab === 'skins' ? '' : 'none';
+  });
+});
+updateShopUI();
+
+document.getElementById('shop-btn').addEventListener('click', () => {
+  document.getElementById('shop').style.display = 'flex';
+  updateShopUI();
+});
+document.getElementById('shop-close').addEventListener('click', () => {
+  document.getElementById('shop').style.display = 'none';
+});
+document.getElementById('start-btn').addEventListener('click', startGame);
+
+const obstaclePool = [];
+const coinPool = [];
+const pickupPool = [];
+const particlePool = [];
+const LANES = [-2, 0, 2];
+
+function makeObstacle() {
+  const types = [
+    { geo: new THREE.BoxGeometry(3, 4, 1), color: 0xff3333, em: 0x440000, h: 4, w: 3, y: 2, tag: 'wall' },
+    { geo: new THREE.BoxGeometry(1.8, 0.5, 1.5), color: 0xff6600, em: 0x331100, h: 0.5, w: 1.8, y: 0.25, tag: 'low' },
+    { geo: new THREE.BoxGeometry(3, 0.6, 1), color: 0xff0066, em: 0x330011, h: 0.6, w: 3, y: 2.2, tag: 'beam' },
+    { geo: new THREE.CylinderGeometry(0.6, 0.6, 2.8, 8), color: 0xff8800, em: 0x331100, h: 2.8, w: 1.2, y: 1.4, tag: 'pole' },
+    { geo: new THREE.BoxGeometry(2, 1.5, 1.5), color: 0xcc33cc, em: 0x330033, h: 1.5, w: 2, y: 0.75, tag: 'block' },
+  ];
+  const t = types[Math.floor(Math.random() * types.length)];
+  const mat = new THREE.MeshStandardMaterial({ color: t.color, roughness: 0.2, emissive: t.em, emissiveIntensity: 0.5 });
+  const mesh = new THREE.Mesh(t.geo, mat);
+  mesh.castShadow = true;
+  mesh.userData = { h: t.h, w: t.w, y: t.y, tag: t.tag };
+  return mesh;
+}
+
+function makeCoin() {
+  const geo = new THREE.TorusGeometry(0.25, 0.09, 8, 16);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffdd00, roughness: 0.1, metalness: 0.9, emissive: 0xffaa00, emissiveIntensity: 1 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.userData.rotSpeed = 2 + Math.random() * 2;
+  return mesh;
+}
+
+function makePickup(type) {
+  const group = new THREE.Group();
+  const geo = new THREE.OctahedronGeometry(0.35, 0);
+  let color, em, tag;
+  switch (type) {
+    case 'magnet': color = 0xff00ff; em = 0x440044; tag = 'M'; break;
+    case 'shield': color = 0x00ff88; em = 0x004422; tag = 'S'; break;
+    case 'double_score': color = 0xff8800; em = 0x442200; tag = 'x2'; break;
+    case 'slow_mo': color = 0x4488ff; em = 0x112244; tag = '~'; break;
+  }
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.1, emissive: em, emissiveIntensity: 0.8 });
+  const core = new THREE.Mesh(geo, mat);
+  group.add(core);
+  const ringGeo = new THREE.TorusGeometry(0.45, 0.06, 8, 16);
+  const ring = new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: color, emissiveIntensity: 0.6, roughness: 0.1 }));
+  ring.rotation.x = Math.PI / 2;
+  group.add(ring);
+  group.userData = { type, pickupType: true };
+  return group;
+}
+
+const player = new THREE.Group();
+const torsoGeo = new THREE.CapsuleGeometry(0.3, 0.7, 4, 8);
+const torso = new THREE.Mesh(torsoGeo, new THREE.MeshStandardMaterial({ color: 0x0088ff, roughness: 0.2, metalness: 0.6 }));
+torso.position.y = 1.4; torso.castShadow = true;
+player.add(torso);
+
+const headGeo = new THREE.SphereGeometry(0.28, 8, 8);
+const head = new THREE.Mesh(headGeo, new THREE.MeshStandardMaterial({ color: 0xffcc88, roughness: 0.5 }));
+head.position.y = 2.0; head.castShadow = true;
+player.add(head);
+
+const visorGeo = new THREE.SphereGeometry(0.29, 8, 8);
+const visor = new THREE.Mesh(visorGeo, new THREE.MeshStandardMaterial({ color: 0x00ffff, roughness: 0.05, metalness: 0.9, emissive: 0x00aaff, emissiveIntensity: 0.8 }));
+visor.position.y = 2.02; visor.position.z = 0.12; visor.scale.set(1, 0.7, 0.4);
+player.add(visor);
+
+const legGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.5, 6);
+const legMat = new THREE.MeshStandardMaterial({ color: 0x224466, roughness: 0.5 });
+const leftLeg = new THREE.Mesh(legGeo, legMat);
+leftLeg.position.set(-0.18, 0.6, 0); leftLeg.castShadow = true;
+player.add(leftLeg);
+const rightLeg = new THREE.Mesh(legGeo, legMat);
+rightLeg.position.set(0.18, 0.6, 0); rightLeg.castShadow = true;
+player.add(rightLeg);
+
+const armGeo = new THREE.CylinderGeometry(0.07, 0.08, 0.5, 6);
+const armMat = new THREE.MeshStandardMaterial({ color: 0x0088ff, roughness: 0.2, metalness: 0.6 });
+const leftArm = new THREE.Mesh(armGeo, armMat);
+leftArm.position.set(-0.4, 1.5, 0); leftArm.castShadow = true;
+player.add(leftArm);
+const rightArm = new THREE.Mesh(armGeo, armMat);
+rightArm.position.set(0.4, 1.5, 0); rightArm.castShadow = true;
+player.add(rightArm);
+
+player.position.set(0, 0.3, 0);
+scene.add(player);
+
+function spawnParticle(x, y, z, color = 0x00ffff) {
+  let p;
+  if (particlePool.length > 0) {
+    p = particlePool.pop(); p.visible = true;
+  } else {
+    const geo = new THREE.SphereGeometry(0.06, 3, 3);
+    p = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color }));
+    scene.add(p);
+  }
+  p.position.set(x, y, z);
+  p.material.color.set(color);
+  p.userData = { vx: (Math.random() - 0.5) * 0.4, vy: Math.random() * 0.3 + 0.15, vz: (Math.random() - 0.5) * 0.3, life: 25 };
+  return p;
+}
+
+let gameRunning = false;
+let gameOver = false;
+let score = 0;
+let sessionCoins = 0;
+let speed = 0.2;
+const BASE_SPEED = 0.2;
+let playerLane = 1;
+let targetX = 0;
+let playerY = 0.3;
+let vy = 0;
+let jumping = false;
+let jumpCount = 0;
+let sliding = false;
+let stomping = false;
+let slideTimer = 0;
+let combo = 1;
+let comboTimer = 0;
+let runCycle = 0;
+const obstacles = [];
+const coins = [];
+const pickups = [];
+const PICKUP_TYPES = ['magnet', 'shield', 'double_score', 'slow_mo'];
+
+let activeMagnet = 0;
+let activeShield = false;
+let activeDoubleScore = 0;
+let activeSlowMo = 0;
+
+let speedBoostPower = 0;
+let boostKeyHeld = false;
+
+function showActiveItems() {
+  const parts = [];
+  if (activeMagnet > 0) parts.push(`🧲 ${activeMagnet.toFixed(1)}s`);
+  if (activeShield) parts.push(`🛡️`);
+  if (activeDoubleScore > 0) parts.push(`x2 ${activeDoubleScore.toFixed(1)}s`);
+  if (activeSlowMo > 0) parts.push(`🐌 ${activeSlowMo.toFixed(1)}s`);
+  if (speedBoostPower > 0.01) parts.push(`⚡ x${(1 + speedBoostPower).toFixed(1)}`);
+  document.getElementById('active-items').textContent = parts.join(' | ');
+}
+showActiveItems();
+
+function startGame() {
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('shop').style.display = 'none';
+  score = 0;
+  sessionCoins = 0;
+  speed = BASE_SPEED;
+  playerLane = 1;
+  targetX = 0;
+  playerY = 0.3;
+  vy = 0;
+  jumping = false;
+  jumpCount = 0;
+  sliding = false;
+  stomping = false;
+  slideTimer = 0;
+  combo = 1;
+  comboTimer = 0;
+  runCycle = 0;
+  gameOver = false;
+  gameRunning = true;
+  activeMagnet = 0;
+  activeShield = false;
+  activeDoubleScore = 0;
+  activeSlowMo = 0;
+  speedBoostPower = 0;
+  boostKeyHeld = false;
+  player.position.set(0, 0.3, 0);
+  player.scale.set(1, 1, 1);
+  player.rotation.set(0, 0, 0);
+  torso.material.emissive.set(0x000000);
+  torso.material.emissiveIntensity = 0;
+
+  while (obstacles.length > 0) { const o = obstacles.pop(); scene.remove(o.mesh); obstaclePool.push(o.mesh); }
+  while (coins.length > 0) { const c = coins.pop(); scene.remove(c.mesh); coinPool.push(c.mesh); }
+  while (pickups.length > 0) { const p = pickups.pop(); scene.remove(p.mesh); pickupPool.push(p.mesh); }
+
+  for (let z = 15; z < 80; z += 8 + Math.random() * 10) spawnContentAt(z);
+
+  document.getElementById('score').textContent = '0';
+  document.getElementById('combo').style.opacity = '0';
+  document.getElementById('speed-label').textContent = '';
+  showActiveItems();
+}
+
+function endGame() {
+  gameRunning = false;
+  gameOver = true;
+  totalCoins += sessionCoins;
+  updateShopUI();
+
+  const overlay = document.getElementById('overlay');
+  overlay.classList.remove('hidden');
+  overlay.querySelector('h1').textContent = '💥 游戏结束';
+  overlay.querySelector('h1').nextElementSibling.textContent = `得分: ${Math.floor(score)} | 获得: 🪙${sessionCoins}`;
+  document.getElementById('speed-label').textContent = '';
+  showActiveItems();
+}
+
+function jump() {
+  if (!gameRunning) return;
+  if (sliding) {
+    sliding = false;
+    player.rotation.x = 0;
+    player.position.y = 0.3;
+    playerY = 0.3;
+  }
+  if (jumpCount < 2) {
+    vy = 0.26 + jumpCount * 0.04;
+    jumping = true;
+    jumpCount++;
+    if (jumpCount === 2) {
+      for (let i = 0; i < 10; i++) spawnParticle(player.position.x, player.position.y - 0.3, player.position.z, 0x00ffff);
+    }
+  }
+}
+
+function slide() {
+  if (sliding || !gameRunning) return;
+  if (jumping) {
+    stomping = true;
+    vy = -0.55;
+    for (let i = 0; i < 6; i++) spawnParticle(player.position.x, player.position.y, player.position.z, 0xffffff);
+    return;
+  }
+  sliding = true;
+  slideTimer = 30;
+  player.rotation.x = -0.7;
+  player.position.y = 0.05;
+  playerY = 0.05;
+}
+
+function moveLane(dir) {
+  if (!gameRunning) return;
+  playerLane = Math.max(0, Math.min(2, playerLane + dir));
+  targetX = LANES[playerLane];
+}
+
+function spawnContentAt(z) {
+  if (z > 8 && Math.random() < 0.55) {
+    const obs = obstaclePool.length > 0 ? obstaclePool.pop() : makeObstacle();
+    const lane = LANES[Math.floor(Math.random() * 3)];
+    obs.position.set(lane, obs.userData.y, z);
+    scene.add(obs);
+    obstacles.push({ mesh: obs, z, h: obs.userData.h, w: obs.userData.w, y: obs.userData.y, tag: obs.userData.tag, x: lane });
+  }
+
+  if (Math.random() < 0.5) {
+    const count = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const coin = coinPool.length > 0 ? coinPool.pop() : makeCoin();
+      coin.position.set(LANES[Math.floor(Math.random() * 3)], 0.8 + Math.random() * 1.0, z + (Math.random() - 0.5) * 3);
+      scene.add(coin);
+      coins.push({ mesh: coin, z, collected: false });
+    }
+  }
+
+  if (z > 12 && Math.random() < 0.12) {
+    const pType = PICKUP_TYPES[Math.floor(Math.random() * PICKUP_TYPES.length)];
+    const pickup = pickupPool.length > 0 ? pickupPool.pop() : makePickup(pType);
+    pickup.position.set(LANES[Math.floor(Math.random() * 3)], 1.2, z);
+    pickup.userData.type = pType;
+    scene.add(pickup);
+    pickups.push({ mesh: pickup, z, collected: false });
+  }
+}
+
+function recycleTo(arr, item, pool) {
+  const idx = arr.indexOf(item);
+  if (idx >= 0) arr.splice(idx, 1);
+  scene.remove(item.mesh);
+  pool.push(item.mesh);
+}
+
+function useShopItem(id) {
+  if ((inventory[id] || 0) > 0) {
+    inventory[id]--;
+    switch (id) {
+      case 'magnet': activeMagnet = 8; break;
+      case 'shield': activeShield = true; break;
+      case 'double_score': activeDoubleScore = 8; break;
+      case 'slow_mo': activeSlowMo = 6; break;
+    }
+    updateShopUI();
+    showActiveItems();
+    return true;
+  }
+  return false;
+}
+
+window.useShopItemDirect = (id) => {
+  if (useShopItem(id)) {
+    startGame();
+  }
+};
+
+document.getElementById('btn-left').addEventListener('pointerdown', (e) => { e.preventDefault(); moveLane(1); });
+document.getElementById('btn-right').addEventListener('pointerdown', (e) => { e.preventDefault(); moveLane(-1); });
+document.getElementById('btn-jump').addEventListener('pointerdown', (e) => { e.preventDefault(); jump(); });
+renderer.domElement.addEventListener('click', () => { if (gameRunning) jump(); });
+renderer.domElement.addEventListener('pointerdown', (e) => { e.preventDefault(); if (gameRunning) jump(); });
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyQ' && !gameRunning) {
+    useShopItem('magnet');
+  }
+  if (e.code === 'KeyW' && !gameRunning) {
+    useShopItem('shield');
+  }
+  if (e.code === 'KeyE' && !gameRunning) {
+    useShopItem('double_score');
+  }
+  if (e.code === 'KeyR' && !gameRunning) {
+    useShopItem('slow_mo');
+  }
+  if (e.code === 'Digit1' && gameRunning && hasSpeedBoost) {
+    if (e.repeat) return;
+    if (speedBoostPower < 0.01) {
+      boostKeyHeld = true;
+    } else {
+      speedBoostPower = 0;
+      boostKeyHeld = false;
+      showActiveItems();
+    }
+    return;
+  }
+  if (!gameRunning) return;
+  switch (e.code) {
+    case 'Space': e.preventDefault(); jump(); break;
+    case 'ArrowLeft': case 'KeyA': moveLane(1); break;
+    case 'ArrowRight': case 'KeyD': moveLane(-1); break;
+    case 'ArrowDown': case 'KeyS': e.preventDefault(); slide(); break;
+  }
+});
+
+document.addEventListener('keyup', (e) => {
+  if (e.code === 'Digit1') {
+    boostKeyHeld = false;
+  }
+});
+
+const clock = new THREE.Clock();
+
+function update(dt) {
+  if (!gameRunning) return;
+
+  speed = BASE_SPEED + Math.min(score / (speedBoostPower > 0.01 ? 250000 : 25000), 0.35);
+  if (activeSlowMo > 0) speed *= 0.5;
+  if (speedBoostPower > 0) speed *= (1 + speedBoostPower);
+
+  if (boostKeyHeld) {
+    speedBoostPower += 0.8 * dt;
+    showActiveItems();
+  }
+
+  const moveSpeed = speed * 60 * dt * (sliding ? 1.55 : 1);
+  const scoreMult = activeDoubleScore > 0 ? 2 : 1;
+
+  player.position.x += (targetX - player.position.x) * 14 * dt;
+
+  const px = player.position.x;
+  const py = playerY;
+  const pz = player.position.z;
+
+  if (jumping) {
+    vy -= stomping ? 0.9 * dt : 0.7 * dt;
+    playerY += vy * 60 * dt;
+    if (playerY <= 0.3 && vy < 0) {
+      playerY = 0.3; vy = 0; jumping = false; jumpCount = 0;
+      if (stomping) {
+        stomping = false;
+        for (let j = 0; j < 20; j++) spawnParticle(player.position.x, 0.3, player.position.z, 0xffffff);
+        const suckRange = 6;
+        for (const c of coins) {
+          if (!c.collected && Math.abs(px - c.mesh.position.x) < suckRange && Math.abs(pz - c.z) < suckRange) {
+            c.collected = true;
+            sessionCoins += 1;
+            score += 30 * scoreMult;
+            for (let j = 0; j < 3; j++) spawnParticle(c.mesh.position.x, c.mesh.position.y, c.z, 0xffdd00);
+          }
+        }
+        for (const p of pickups) {
+          if (!p.collected && Math.abs(px - p.mesh.position.x) < suckRange && Math.abs(pz - p.z) < suckRange) {
+            p.collected = true;
+            const pType = p.mesh.userData.type;
+            for (let j = 0; j < 10; j++) spawnParticle(p.mesh.position.x, p.mesh.position.y, p.z, 0xffffff);
+            switch (pType) {
+              case 'magnet': activeMagnet = 8; break;
+              case 'shield': activeShield = true; break;
+              case 'double_score': activeDoubleScore = 8; break;
+              case 'slow_mo': activeSlowMo = 6; break;
+            }
+            showActiveItems();
+          }
+        }
+      }
+    }
+  }
+  if (!jumping && !sliding) playerY += (0.3 - playerY) * 0.15;
+  player.position.y = playerY;
+
+  if (sliding) {
+    slideTimer--;
+    if (slideTimer <= 0) {
+      sliding = false;
+    }
+  }
+  if (!sliding && !jumping && player.rotation.x < 0) {
+    player.rotation.x += (0 - player.rotation.x) * 0.15;
+    if (player.rotation.x > -0.01) player.rotation.x = 0;
+  }
+  if (!sliding && !jumping && player.position.y < 0.29) {
+    player.position.y += (0.3 - player.position.y) * 0.15;
+    playerY = player.position.y;
+  }
+
+  runCycle += speed * 18;
+  leftLeg.rotation.x = Math.sin(runCycle) * 0.55;
+  rightLeg.rotation.x = Math.sin(runCycle + Math.PI) * 0.55;
+  leftArm.rotation.x = Math.sin(runCycle + Math.PI) * 0.4;
+  rightArm.rotation.x = Math.sin(runCycle) * 0.4;
+
+  score += speed * 10 * combo * scoreMult;
+  document.getElementById('score').textContent = Math.floor(score);
+  document.getElementById('speed-label').textContent = `速度 ${(speed * 10).toFixed(1)} | ${['左','中','右'][playerLane]}道`;
+
+  if (activeMagnet > 0) activeMagnet = Math.max(0, activeMagnet - dt);
+  if (activeDoubleScore > 0) activeDoubleScore = Math.max(0, activeDoubleScore - dt);
+  if (activeSlowMo > 0) activeSlowMo = Math.max(0, activeSlowMo - dt);
+  showActiveItems();
+
+  if (activeShield) {
+    torso.material.emissive.set(0x00ff88);
+    torso.material.emissiveIntensity = 0.6;
+  } else {
+    torso.material.emissive.set(0x000000);
+    torso.material.emissiveIntensity = 0;
+  }
+
+  comboTimer -= dt;
+  if (comboTimer <= 0 && combo > 1) {
+    combo = Math.max(1, combo - 1);
+    document.getElementById('combo').style.opacity = combo > 1 ? '1' : '0';
+  }
+
+  road.position.z -= moveSpeed;
+  if (road.position.z < -100) road.position.z += 200;
+
+  if (speedBoostPower > 0.02) {
+    const intensity = Math.ceil(speedBoostPower * 4);
+    for (let k = 0; k < intensity; k++) {
+      const lx = player.position.x + (Math.random() - 0.5) * 2;
+      const ly = 0.5 + Math.random() * 2.5;
+      const lz = player.position.z + (Math.random() - 0.5) * 3;
+      spawnParticle(lx, ly, lz, Math.random() < 0.5 ? 0xffdd00 : 0x00aaff);
+    }
+  }
+
+  if (Math.abs(player.position.x) > 3.5) { endGame(); return; }
+
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    o.z -= moveSpeed;
+    o.mesh.position.z = o.z;
+    if (o.z < -30) { recycleTo(obstacles, o, obstaclePool); continue; }
+
+    const oh = o.h, ow = o.w, oy = o.y;
+    const pTop = py + (sliding ? 0.45 : 1.7);
+    const pBottom = py - 0.15;
+    const oTop = oy + oh / 2;
+    const oBottom = oy - oh / 2;
+
+    if (Math.abs(o.mesh.position.x - px) < ow / 2 + 0.35 && Math.abs(pz - o.z) < 1.0) {
+      if (o.tag === 'beam' && jumping) continue;
+      if (pTop <= oBottom || pBottom >= oTop) continue;
+      if (activeShield) {
+        activeShield = false;
+        for (let j = 0; j < 15; j++) spawnParticle(o.mesh.position.x, o.mesh.position.y, o.z, 0x00ff88);
+        recycleTo(obstacles, o, obstaclePool);
+        continue;
+      }
+      endGame();
+      return;
+    }
+  }
+
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const c = coins[i];
+    c.z -= moveSpeed;
+    if (activeMagnet > 0 && Math.abs(px - c.mesh.position.x) < 4 && Math.abs(pz - c.z) < 6) {
+      c.mesh.position.x += (px - c.mesh.position.x) * 0.1;
+    }
+    c.mesh.position.z = c.z;
+    c.mesh.rotation.y += 0.06;
+    c.mesh.rotation.x += 0.04;
+
+    if (!c.collected && Math.abs(px - c.mesh.position.x) < 1.2 && Math.abs(pz - c.z) < 1.2 && Math.abs(py - c.mesh.position.y) < 1.8) {
+      c.collected = true;
+      sessionCoins += 1;
+      score += 50 * combo * scoreMult;
+      combo = Math.min(10, combo + 1);
+      comboTimer = 2.5;
+      document.getElementById('combo').textContent = `COMBO x${combo}`;
+      document.getElementById('combo').style.opacity = '1';
+      document.getElementById('coins-display').textContent = `🪙 ${totalCoins + sessionCoins}`;
+      for (let j = 0; j < 5; j++) spawnParticle(c.mesh.position.x, c.mesh.position.y, c.mesh.position.z, 0xffdd00);
+      recycleTo(coins, c, coinPool);
+    } else if (c.z < -20) {
+      recycleTo(coins, c, coinPool);
+    }
+  }
+
+  for (let i = pickups.length - 1; i >= 0; i--) {
+    const p = pickups[i];
+    p.z -= moveSpeed;
+    p.mesh.position.z = p.z;
+    p.mesh.rotation.y += 0.03;
+    p.mesh.children[1].rotation.z += 0.04;
+
+    if (!p.collected && Math.abs(px - p.mesh.position.x) < 1.0 && Math.abs(pz - p.z) < 1.0 && Math.abs(py - 1.2) < 1.5) {
+      p.collected = true;
+      const pType = p.mesh.userData.type;
+      for (let j = 0; j < 10; j++) spawnParticle(p.mesh.position.x, p.mesh.position.y, p.z, 0xffffff);
+      switch (pType) {
+        case 'magnet': activeMagnet = 8; break;
+        case 'shield': activeShield = true; break;
+        case 'double_score': activeDoubleScore = 8; break;
+        case 'slow_mo': activeSlowMo = 6; break;
+      }
+      showActiveItems();
+      recycleTo(pickups, p, pickupPool);
+    } else if (p.z < -20) {
+      recycleTo(pickups, p, pickupPool);
+    }
+  }
+
+  const maxZ = Math.max(
+    obstacles.length > 0 ? Math.max(...obstacles.map(o => o.z)) : 20,
+    pickups.length > 0 ? Math.max(...pickups.map(p => p.z)) : 20
+  );
+  if (maxZ < 80) {
+    for (let z = maxZ + 8; z < maxZ + 60; z += 8 + Math.random() * 8) {
+      spawnContentAt(z);
+    }
+  }
+
+  for (let i = 0; i < neonLights.length; i++) {
+    neonLights[i].intensity = 2 + Math.sin(Date.now() * 0.005 + i) * 1;
+    neonLights[i].position.set(Math.sin(pz * 0.03 + i * 0.8) * 18, 4 + Math.sin(pz * 0.04 + i) * 2, pz + i * 15 - 30);
+  }
+  stars.position.z = pz;
+  bg.position.z = pz * 0.1;
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  update(dt);
+
+  camera.position.x += (player.position.x * 0.5 - camera.position.x) * 5 * dt;
+  camera.position.y += (7.5 + (player.position.y - 0.3) * 3 - camera.position.y) * 4 * dt;
+  camera.position.z += (player.position.z - 13 - camera.position.z) * 5 * dt;
+  camera.lookAt(player.position.x * 0.3, 1.5 + player.position.y * 0.5, player.position.z + 15);
+  renderer.render(scene, camera);
+
+  for (let i = scene.children.length - 1; i >= 0; i--) {
+    const c = scene.children[i];
+    if (c.userData && c.userData.life !== undefined && !c.userData.pickupType) {
+      c.position.x += c.userData.vx;
+      c.position.y += c.userData.vy;
+      c.position.z += c.userData.vz;
+      c.userData.life--;
+      if (c.userData.life <= 0) { c.visible = false; particlePool.push(c); }
+    }
+  }
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>

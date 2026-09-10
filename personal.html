@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jay's Personal Page</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --cyan: #00f0ff;
+  --purple: #a855f7;
+  --pink: #ec4899;
+  --dark: #0a0a1a;
+  --card-bg: rgba(10, 15, 40, 0.7);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: #000;
+  color: #e0e0ff;
+  overflow-x: hidden;
+}
+
+/* ===== LOADING SCREEN ===== */
+#loader {
+  position: fixed; inset: 0; z-index: 9999;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.8s, visibility 0.8s;
+}
+#loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.loader-content { text-align: center; }
+
+.loader-ring {
+  width: 120px; height: 120px; margin: 0 auto 30px;
+  border: 3px solid transparent;
+  border-top-color: var(--cyan);
+  border-right-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  position: relative;
+}
+.loader-ring::before {
+  content: '';
+  position: absolute; inset: 8px;
+  border: 2px solid transparent;
+  border-bottom-color: var(--pink);
+  border-left-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 1.5s linear infinite reverse;
+}
+.loader-ring::after {
+  content: '';
+  position: absolute; inset: 20px;
+  border: 2px solid transparent;
+  border-top-color: var(--purple);
+  border-radius: 50%;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loader-text {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  color: var(--cyan);
+  letter-spacing: 4px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.loader-bar {
+  width: 200px; height: 2px; margin: 20px auto 0;
+  background: rgba(0,240,255,0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.loader-bar-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--purple), var(--pink));
+  animation: loadBar 2s ease-out forwards;
+}
+@keyframes loadBar { to { width: 100%; } }
+
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ===== SPACE BACKGROUND ===== */
+#space-bg {
+  position: fixed; inset: 0; z-index: -2;
+  background: radial-gradient(ellipse at 20% 50%, #0d0d2b 0%, #000 70%),
+              radial-gradient(ellipse at 80% 20%, #1a0a2e 0%, transparent 50%),
+              radial-gradient(ellipse at 50% 80%, #0a1628 0%, transparent 50%);
+}
+
+#stars-canvas {
+  position: fixed; inset: 0; z-index: -1;
+}
+
+/* ===== NEBULA OVERLAY ===== */
+.nebula {
+  position: fixed; border-radius: 50%; filter: blur(80px);
+  z-index: -1; opacity: 0.15; pointer-events: none;
+}
+.nebula-1 {
+  width: 600px; height: 400px; top: 10%; left: -5%;
+  background: radial-gradient(circle, #6b21a8, transparent);
+  animation: nebFloat 20s ease-in-out infinite;
+}
+.nebula-2 {
+  width: 500px; height: 500px; top: 60%; right: -10%;
+  background: radial-gradient(circle, #0e7490, transparent);
+  animation: nebFloat 25s ease-in-out infinite reverse;
+}
+.nebula-3 {
+  width: 400px; height: 300px; bottom: 5%; left: 30%;
+  background: radial-gradient(circle, #be185d, transparent);
+  animation: nebFloat 18s ease-in-out infinite 5s;
+}
+
+@keyframes nebFloat {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(30px,-20px) scale(1.1); }
+  66% { transform: translate(-20px,30px) scale(0.95); }
+}
+
+/* ===== FLOATING PARTICLES ===== */
+.particle {
+  position: fixed; width: 3px; height: 3px;
+  background: var(--cyan); border-radius: 50%;
+  z-index: -1; pointer-events: none;
+  animation: particleFloat linear infinite;
+  opacity: 0;
+}
+
+@keyframes particleFloat {
+  0% { transform: translateY(100vh) scale(0); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+}
+
+/* ===== GRID FLOOR ===== */
+.grid-floor {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: 40vh; z-index: -1;
+  background:
+    linear-gradient(transparent 0%, rgba(0,240,255,0.03) 100%),
+    repeating-linear-gradient(90deg, rgba(0,240,255,0.05) 0px, transparent 1px, transparent 60px),
+    repeating-linear-gradient(0deg, rgba(0,240,255,0.05) 0px, transparent 1px, transparent 60px);
+  transform: perspective(500px) rotateX(60deg);
+  transform-origin: bottom center;
+  mask-image: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+  opacity: 0;
+  transition: opacity 1s ease 0.3s;
+  position: relative; z-index: 1;
+}
+.main-content.visible { opacity: 1; }
+
+/* ===== HEADER ===== */
+.header {
+  text-align: center; padding: 80px 20px 40px;
+  position: relative;
+}
+
+.header::before {
+  content: '';
+  position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 2px; height: 60px;
+  background: linear-gradient(to bottom, transparent, var(--cyan));
+  animation: headerLine 2s ease-out forwards;
+}
+
+@keyframes headerLine {
+  from { height: 0; opacity: 0; }
+  to { height: 60px; opacity: 1; }
+}
+
+.header h1 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(32px, 6vw, 64px);
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--cyan), var(--purple), var(--pink));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  margin-bottom: 10px;
+  letter-spacing: 4px;
+}
+
+.header .subtitle {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(12px, 2vw, 16px);
+  color: rgba(0,240,255,0.5);
+  letter-spacing: 8px;
+  text-transform: uppercase;
+}
+
+/* ===== PROFILE SECTION ===== */
+.profile-section {
+  max-width: 900px; margin: 40px auto;
+  padding: 0 20px;
+  display: flex; gap: 50px; align-items: center;
+  flex-wrap: wrap; justify-content: center;
+}
+
+.photo-container {
+  position: relative; flex-shrink: 0;
+}
+
+.photo-frame {
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  padding: 4px;
+  background: conic-gradient(from 0deg, var(--cyan), var(--purple), var(--pink), var(--cyan));
+  animation: photoRotate 6s linear infinite;
+  position: relative;
+}
+
+.photo-frame::after {
+  content: '';
+  position: absolute; inset: -8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,240,255,0.2);
+  animation: photoPulse 3s ease-in-out infinite;
+}
+
+@keyframes photoRotate {
+  to { background: conic-gradient(from 360deg, var(--cyan), var(--purple), var(--pink), var(--cyan)); }
+}
+
+@keyframes photoPulse {
+  0%,100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.08); opacity: 0.6; }
+}
+
+.photo-frame img {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.photo-glow {
+  position: absolute; inset: -30px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,240,255,0.15), transparent 70%);
+  animation: glowPulse 4s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%,100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.info-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(0,240,255,0.15);
+  border-radius: 16px;
+  padding: 35px 40px;
+  backdrop-filter: blur(20px);
+  position: relative;
+  overflow: hidden;
+  flex: 1; min-width: 300px;
+}
+
+.info-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
+}
+
+.info-card h2 {
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  color: var(--cyan);
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.info-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  background: rgba(0,240,255,0.03);
+  border-left: 3px solid var(--cyan);
+  transition: all 0.3s;
+}
+
+.info-row:hover {
+  background: rgba(0,240,255,0.08);
+  border-left-color: var(--purple);
+  transform: translateX(5px);
+}
+
+.info-icon {
+  font-size: 20px; width: 28px; text-align: center;
+}
+
+.info-label {
+  font-size: 13px; color: rgba(255,255,255,0.4);
+  font-family: 'Orbitron', monospace;
+  letter-spacing: 1px;
+}
+
+.info-value {
+  font-size: 16px; color: #fff;
+  font-weight: 700;
+}
+
+.hobbies-grid {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;
+}
+
+.hobby-tag {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  border: 1px solid rgba(0,240,255,0.2);
+  background: rgba(0,240,255,0.05);
+  color: var(--cyan);
+  transition: all 0.3s;
+  cursor: default;
+}
+
+.hobby-tag:hover {
+  background: rgba(0,240,255,0.15);
+  border-color: var(--cyan);
+  box-shadow: 0 0 15px rgba(0,240,255,0.2);
+  transform: translateY(-2px);
+}
+
+/* ===== SECTION TITLE ===== */
+.section-title {
+  text-align: center; margin: 80px 0 50px;
+}
+
+.section-title h2 {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(24px, 4vw, 40px);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 10px;
+}
+
+.section-title .line {
+  width: 80px; height: 2px; margin: 0 auto;
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  border-radius: 2px;
+}
+
+.section-title .sub {
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  color: rgba(0,240,255,0.4);
+  letter-spacing: 6px;
+  margin-top: 12px;
+  text-transform: uppercase;
+}
+
+/* ===== PORTFOLIO GRID ===== */
+.portfolio-grid {
+  max-width: 1100px; margin: 0 auto;
+  padding: 0 20px 100px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.project-card {
+  background: var(--card-bg);
+  border: 1px solid rgba(0,240,255,0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.project-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent, var(--cyan), var(--purple), transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.project-card:hover::before { opacity: 1; }
+
+.project-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(0,240,255,0.15),
+              0 0 40px rgba(168,85,247,0.1);
+}
+
+.card-banner {
+  height: 180px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+  font-size: 60px;
+}
+
+.card-banner::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 50%;
+  background: linear-gradient(to top, var(--card-bg), transparent);
+}
+
+.card-info {
+  padding: 20px 25px 25px;
+}
+
+.card-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-family: 'Orbitron', monospace;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  border: 1px solid;
+}
+
+.card-info h3 {
+  font-family: 'Orbitron', monospace;
+  font-size: 18px;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.card-info p {
+  font-size: 14px;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.6;
+}
+
+.card-arrow {
+  position: absolute; bottom: 20px; right: 20px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,240,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  transition: all 0.3s;
+  color: var(--cyan);
+}
+
+.project-card:hover .card-arrow {
+  background: var(--cyan);
+  color: #000;
+  box-shadow: 0 0 20px rgba(0,240,255,0.4);
+}
+
+/* Card Themes */
+.card-mech .card-banner {
+  background: linear-gradient(135deg, #1a0a2e, #2d1b69);
+}
+.card-mech .card-tag { color: #f59e0b; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.1); }
+
+.card-space .card-banner {
+  background: linear-gradient(135deg, #0a1628, #1e3a5f);
+}
+.card-space .card-tag { color: var(--cyan); border-color: rgba(0,240,255,0.3); background: rgba(0,240,255,0.1); }
+
+.card-pearl .card-banner {
+  background: linear-gradient(135deg, #042f4a, #0e7490);
+}
+.card-pearl .card-tag { color: #22d3ee; border-color: rgba(34,211,238,0.3); background: rgba(34,211,238,0.1); }
+
+.card-burger .card-banner {
+  background: linear-gradient(135deg, #451a03, #92400e);
+}
+.card-burger .card-tag { color: #fb923c; border-color: rgba(251,146,60,0.3); background: rgba(251,146,60,0.1); }
+
+.card-dino .card-banner {
+  background: linear-gradient(135deg, #14532d, #166534);
+}
+.card-dino .card-tag { color: #4ade80; border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.1); }
+
+/* ===== SCAN LINE EFFECT ===== */
+.scan-line {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 2px; z-index: 100;
+  background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+  opacity: 0.3;
+  animation: scanDown 8s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes scanDown {
+  0% { top: -2px; }
+  100% { top: 100vh; }
+}
+
+/* ===== CORNER DECORATIONS ===== */
+.corner {
+  position: fixed; width: 60px; height: 60px;
+  z-index: 50; pointer-events: none;
+}
+.corner::before, .corner::after {
+  content: ''; position: absolute;
+  background: var(--cyan);
+}
+.corner-tl { top: 15px; left: 15px; }
+.corner-tl::before { width: 20px; height: 1px; top: 0; left: 0; }
+.corner-tl::after { width: 1px; height: 20px; top: 0; left: 0; }
+
+.corner-tr { top: 15px; right: 15px; }
+.corner-tr::before { width: 20px; height: 1px; top: 0; right: 0; }
+.corner-tr::after { width: 1px; height: 20px; top: 0; right: 0; }
+
+.corner-bl { bottom: 15px; left: 15px; }
+.corner-bl::before { width: 20px; height: 1px; bottom: 0; left: 0; }
+.corner-bl::after { width: 1px; height: 20px; bottom: 0; left: 0; }
+
+.corner-br { bottom: 15px; right: 15px; }
+.corner-br::before { width: 20px; height: 1px; bottom: 0; right: 0; }
+.corner-br::after { width: 1px; height: 20px; bottom: 0; right: 0; }
+
+/* ===== FLOATING SHIP ===== */
+.ship {
+  position: fixed; z-index: 10;
+  font-size: 24px;
+  animation: shipFly 20s linear infinite;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px rgba(0,240,255,0.5));
+}
+
+@keyframes shipFly {
+  0% { transform: translate(-50px, 50vh) rotate(-10deg); opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { transform: translate(calc(100vw + 50px), -20vh) rotate(10deg); opacity: 0; }
+}
+
+/* ===== SCROLL INDICATOR ===== */
+.scroll-indicator {
+  position: fixed; bottom: 30px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  animation: scrollBounce 2s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.scroll-indicator .mouse {
+  width: 24px; height: 38px;
+  border: 2px solid rgba(0,240,255,0.4);
+  border-radius: 12px;
+  margin: 0 auto 6px;
+  position: relative;
+}
+
+.scroll-indicator .wheel {
+  width: 3px; height: 8px;
+  background: var(--cyan);
+  border-radius: 3px;
+  position: absolute; left: 50%; top: 6px;
+  transform: translateX(-50%);
+  animation: scrollWheel 1.5s ease-in-out infinite;
+}
+
+@keyframes scrollWheel {
+  0% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(12px); }
+}
+
+@keyframes scrollBounce {
+  0%,100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(8px); }
+}
+
+.scroll-indicator span {
+  display: block;
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  color: rgba(0,240,255,0.4);
+  letter-spacing: 2px;
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  text-align: center; padding: 40px 20px;
+  border-top: 1px solid rgba(0,240,255,0.08);
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  color: rgba(0,240,255,0.3);
+  letter-spacing: 2px;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .profile-section { flex-direction: column; text-align: center; }
+  .info-card { padding: 25px; }
+  .info-row { flex-direction: column; text-align: center; gap: 4px; }
+  .hobbies-grid { justify-content: center; }
+  .portfolio-grid { grid-template-columns: 1fr; }
+  .header { padding-top: 60px; }
+}
+
+/* ===== SCROLL ANIMATIONS ===== */
+.reveal {
+  opacity: 0; transform: translateY(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal.visible {
+  opacity: 1; transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loader">
+  <div class="loader-content">
+    <div class="loader-ring"></div>
+    <div class="loader-text">INITIALIZING</div>
+    <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+  </div>
+</div>
+
+<!-- SPACE BACKGROUND -->
+<div id="space-bg"></div>
+<canvas id="stars-canvas"></canvas>
+
+<!-- NEBULAE -->
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+<div class="nebula nebula-3"></div>
+
+<!-- GRID FLOOR -->
+<div class="grid-floor"></div>
+
+<!-- SCAN LINE -->
+<div class="scan-line"></div>
+
+<!-- CORNERS -->
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<!-- FLOATING SHIP -->
+<div class="ship">🚀</div>
+
+<!-- SCROLL INDICATOR -->
+<div class="scroll-indicator">
+  <div class="mouse"><div class="wheel"></div></div>
+  <span>SCROLL</span>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content" id="mainContent">
+
+  <!-- HEADER -->
+  <header class="header">
+    <h1>JAY</h1>
+    <p class="subtitle">// Explorer · Creator · Innovator</p>
+  </header>
+
+  <!-- PROFILE -->
+  <section class="profile-section">
+    <div class="photo-container">
+      <div class="photo-glow"></div>
+      <div class="photo-frame">
+        <img src="photo.jpg" alt="Profile Photo">
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h2>/// SYSTEM PROFILE</h2>
+
+      <div class="info-row">
+        <span class="info-icon">👤</span>
+        <div>
+          <div class="info-label">NAME</div>
+          <div class="info-value">JAY</div>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <span class="info-icon">🎂</span>
+        <div>
+          <div class="info-label">AGE</div>
+          <div class="info-value">12</div>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <span class="info-icon">⚡</span>
+        <div>
+          <div class="info-label">HOBBIES</div>
+          <div class="hobbies-grid">
+            <span class="hobby-tag">🏀 Basketball</span>
+            <span class="hobby-tag">⚽ Football</span>
+            <span class="hobby-tag">🏸 Badminton</span>
+            <span class="hobby-tag">🖨️ 3D Printing</span>
+            <span class="hobby-tag">💻 Coding</span>
+            <span class="hobby-tag">📐 Math</span>
+            <span class="hobby-tag">🤖 Robotics</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO -->
+  <div class="section-title reveal">
+    <h2>PORTFOLIO</h2>
+    <div class="line"></div>
+    <div class="sub">/// Project Collection</div>
+  </div>
+
+  <div class="portfolio-grid">
+
+    <a href="mech_invasion_3d.html" class="project-card card-mech reveal">
+      <div class="card-banner">🤖</div>
+      <div class="card-info">
+        <span class="card-tag">3D · SHOOTING</span>
+        <h3>Space Mech Shooter</h3>
+        <p>3D mech combat — pilot your mech through space and defeat invading enemies</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+<a href="pearl_game.html" class="project-card card-pearl reveal">
+      <div class="card-banner">🐚</div>
+      <div class="card-info">
+        <span class="card-tag">UNDERWATER · CASUAL</span>
+        <h3>Pearl Catcher</h3>
+        <p>Deep sea adventure — guide the diver to collect precious pearls</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a href="burger-game.html" class="project-card card-burger reveal">
+      <div class="card-banner">🍔</div>
+      <div class="card-info">
+        <span class="card-tag">SIMULATION · CREATIVE</span>
+        <h3>Burger Builder</h3>
+        <p>Run your own burger shop — mix and match ingredients to create the perfect burger</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a href="dino-game/index.html" class="project-card card-dino reveal">
+      <div class="card-banner">🦕</div>
+      <div class="card-info">
+        <span class="card-tag">RUNNER · ENDLESS</span>
+        <h3>Dino Runner</h3>
+        <p>Pay homage to the classic — endless runner that tests your reflexes</p>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>/// DESIGNED WITH PASSION ///</p>
+  </footer>
+
+</div>
+
+<script>
+// ===== STAR FIELD =====
+const canvas = document.getElementById('stars-canvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+const STAR_COUNT = 300;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function initStars() {
+  stars = [];
+  for (let i = 0; i < STAR_COUNT; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.5 + 0.3,
+      speed: Math.random() * 0.3 + 0.05,
+      twinkle: Math.random() * Math.PI * 2,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
+    });
+  }
+}
+
+function drawStars() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (const s of stars) {
+    s.twinkle += s.twinkleSpeed;
+    s.y += s.speed;
+    if (s.y > canvas.height + 5) {
+      s.y = -5;
+      s.x = Math.random() * canvas.width;
+    }
+    const alpha = 0.4 + 0.6 * Math.abs(Math.sin(s.twinkle));
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200,220,255,${alpha})`;
+    ctx.fill();
+  }
+  requestAnimationFrame(drawStars);
+}
+
+resizeCanvas();
+initStars();
+drawStars();
+window.addEventListener('resize', () => { resizeCanvas(); initStars(); });
+
+// ===== FLOATING PARTICLES =====
+function createParticles() {
+  const container = document.body;
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.style.left = Math.random() * 100 + 'vw';
+    p.style.animationDuration = (Math.random() * 15 + 10) + 's';
+    p.style.animationDelay = (Math.random() * 10) + 's';
+    p.style.width = p.style.height = (Math.random() * 3 + 1) + 'px';
+    const colors = ['var(--cyan)', 'var(--purple)', 'var(--pink)', '#fff'];
+    p.style.background = colors[Math.floor(Math.random() * colors.length)];
+    container.appendChild(p);
+  }
+}
+createParticles();
+
+// ===== LOADER =====
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+    document.getElementById('mainContent').classList.add('visible');
+  }, 2200);
+});
+
+// ===== SCROLL REVEAL =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) e.target.classList.add('visible');
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ===== MOUSE GLOW =====
+document.addEventListener('mousemove', (e) => {
+  document.body.style.setProperty('--mx', e.clientX + 'px');
+  document.body.style.setProperty('--my', e.clientY + 'px');
+});
+
+// ===== TILT ON CARDS =====
+document.querySelectorAll('.project-card').forEach(card => {
+  card.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    card.style.transform = `translateY(-8px) scale(1.02) rotateY(${x*8}deg) rotateX(${-y*8}deg)`;
+  });
+  card.addEventListener('mouseleave', () => {
+    card.style.transform = '';
+  });
+});
+</script>
+</body>
+</html>
