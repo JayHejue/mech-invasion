@@ -333,7 +333,10 @@ body {
   background: rgba(0,240,255,0.05);
   color: var(--cyan);
   transition: all 0.3s;
-  cursor: default;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  user-select: none;
 }
 
 .hobby-tag:hover {
@@ -341,6 +344,71 @@ body {
   border-color: var(--cyan);
   box-shadow: 0 0 15px rgba(0,240,255,0.2);
   transform: translateY(-2px);
+}
+
+.hobby-tag:active {
+  transform: scale(0.95);
+}
+
+.hobby-tag.shard-piece {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 3px;
+  animation: shardExplode 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes shardExplode {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--ex), var(--ey)) rotate(var(--er)) scale(0);
+  }
+}
+
+.hobby-tag.disappear {
+  animation: disappearFade 0.3s ease-out forwards;
+}
+
+@keyframes disappearFade {
+  0% { opacity: 1; transform: scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: scale(0.5); filter: blur(4px); }
+}
+
+.hobby-tag.shake-effect {
+  animation: shakeReassemble 0.4s ease-in-out;
+}
+
+@keyframes shakeReassemble {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-3px, -2px); }
+  20% { transform: translate(3px, 2px); }
+  30% { transform: translate(-2px, 3px); }
+  40% { transform: translate(2px, -3px); }
+  50% { transform: translate(-3px, 1px); }
+  60% { transform: translate(3px, -1px); }
+  70% { transform: translate(-1px, 3px); }
+  80% { transform: translate(1px, -2px); }
+  90% { transform: translate(-2px, 1px); }
+}
+
+.hobby-tag.reassemble-flash {
+  animation: reassembleFlash 0.5s ease-out;
+}
+
+@keyframes reassembleFlash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0,240,255,1), 0 0 30px 10px rgba(168,85,247,0.8);
+    transform: scale(1.15);
+    border-color: rgba(0,240,255,1);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0,240,255,0), 0 0 0 0 rgba(168,85,247,0);
+    transform: scale(1);
+    border-color: rgba(0,240,255,0.2);
+  }
 }
 
 /* ===== SECTION TITLE ===== */
@@ -384,6 +452,7 @@ body {
 
 .project-card {
   background: var(--card-bg);
+  border: 1px solid rgba(0,240,255,0.1);
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -394,30 +463,9 @@ body {
   display: block;
 }
 
-.project-card::before {
-  content: '';
-  position: absolute;
-  top: -50%; left: -50%;
-  width: 200%; height: 200%;
-  background: conic-gradient(from 0deg, transparent, var(--cyan), var(--purple), var(--pink), var(--cyan), transparent);
-  animation: borderSpin 3s linear infinite;
-  z-index: -2;
-}
-
-.project-card::after {
-  content: '';
-  position: absolute; inset: 2px;
-  background: var(--card-bg);
-  border-radius: 14px;
-  z-index: -1;
-}
-
-@keyframes borderSpin {
-  to { transform: rotate(360deg); }
-}
-
 .project-card:hover {
   transform: translateY(-8px) scale(1.02);
+  border-color: rgba(0,240,255,0.3);
   box-shadow: 0 20px 60px rgba(0,240,255,0.15),
               0 0 40px rgba(168,85,247,0.1);
 }
@@ -901,6 +949,66 @@ document.querySelectorAll('.project-card').forEach(card => {
   });
   card.addEventListener('mouseleave', () => {
     card.style.transform = '';
+  });
+});
+
+// ===== HOBBY TAG EFFECT =====
+document.querySelectorAll('.hobby-tag').forEach(tag => {
+  tag.addEventListener('click', () => {
+    if (tag.classList.contains('disappear')) return;
+    
+    const rect = tag.getBoundingClientRect();
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    
+    // Create shards
+    const shardCount = 15;
+    for (let i = 0; i < shardCount; i++) {
+      const shard = document.createElement('span');
+      shard.className = 'shard-piece';
+      const angle = (Math.PI * 2 * i) / shardCount + (Math.random() - 0.5) * 0.6;
+      const dist = 40 + Math.random() * 50;
+      const ex = Math.cos(angle) * dist;
+      const ey = Math.sin(angle) * dist;
+      const er = (Math.random() - 0.5) * 540;
+      
+      const w = 4 + Math.random() * 10;
+      const h = 3 + Math.random() * 6;
+      const colors = ['rgba(0,240,255,0.9)', 'rgba(168,85,247,0.9)', 'rgba(236,72,153,0.9)'];
+      
+      shard.style.cssText = `
+        left: ${cx - w/2}px;
+        top: ${cy - h/2}px;
+        width: ${w}px;
+        height: ${h}px;
+        background: ${colors[i % colors.length]};
+        box-shadow: 0 0 6px ${colors[i % colors.length]};
+        --ex: ${ex}px;
+        --ey: ${ey}px;
+        --er: ${er}deg;
+        animation-delay: ${Math.random() * 0.05}s;
+      `;
+      tag.appendChild(shard);
+    }
+    
+    // Disappear the tag
+    tag.classList.add('disappear');
+    
+    // After 700ms, shake and reassemble
+    setTimeout(() => {
+      tag.querySelectorAll('.shard-piece').forEach(s => s.remove());
+      tag.classList.remove('disappear');
+      tag.style.opacity = '1';
+      tag.style.transform = 'scale(1)';
+      tag.style.filter = 'none';
+      tag.classList.add('shake-effect');
+      
+      setTimeout(() => {
+        tag.classList.remove('shake-effect');
+        tag.classList.add('reassemble-flash');
+        setTimeout(() => tag.classList.remove('reassemble-flash'), 500);
+      }, 400);
+    }, 700);
   });
 });
 </script>
